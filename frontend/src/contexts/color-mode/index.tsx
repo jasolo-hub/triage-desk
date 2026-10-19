@@ -1,20 +1,7 @@
-import {
-  type PropsWithChildren,
-  createContext,
-  useEffect,
-  useState,
-} from "react";
+import { type PropsWithChildren, useEffect, useState } from "react";
 import { ConfigProvider, theme } from "antd";
 import { RefineThemes } from "@refinedev/antd";
-
-type ColorModeContextType = {
-  mode: string;
-  setMode: (mode: string) => void;
-};
-
-export const ColorModeContext = createContext<ColorModeContextType>(
-  {} as ColorModeContextType
-);
+import { ColorModeContext } from "./context";
 
 export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
   children,
