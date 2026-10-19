@@ -124,7 +124,9 @@ const AddComment = ({ ticketId }: Props) => {
   const { open } = useNotification();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploaded, setUploaded] = useState<UploadResult | null>(null);
-  const uploading = fileList.some((f) => f.status === "uploading");
+  // Still uploading, or failed and not removed: don't post the comment
+  // silently without the file the user picked.
+  const attachmentPending = fileList.some((f) => f.status !== "done");
 
   const { formProps, saveButtonProps, form } = useForm<Comment, HttpError, NewComment>({
     resource: "comments",
@@ -188,7 +190,7 @@ const AddComment = ({ ticketId }: Props) => {
         >
           <Button icon={<UploadOutlined />}>Attach file</Button>
         </Upload>
-        <SaveButton {...saveButtonProps} disabled={uploading}>
+        <SaveButton {...saveButtonProps} disabled={attachmentPending}>
           Add comment
         </SaveButton>
       </Space>
