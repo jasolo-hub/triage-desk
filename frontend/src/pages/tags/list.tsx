@@ -1,20 +1,103 @@
-import React from "react";
-import { BaseRecord } from "@refinedev/core";
-import { useTable, List } from "@refinedev/antd";
-import { Table, Space } from "antd";
+import { CanAccess, type HttpError } from "@refinedev/core";
+import { DeleteButton, EditButton, List, SaveButton, useEditableTable, useForm } from "@refinedev/antd";
+import { Button, ColorPicker, Form, Input, Space, Table, Tag } from "antd";
+import type { Color } from "antd/es/color-picker";
+import type { Tag as TagRecord } from "../../types";
+import { showConflictOnField, toastUnlessConflict } from "../../utils/conflict";
 
+// ColorPicker works with Color objects; the API stores "#rrggbb".
+const toHex = (color: Color) => color.toHexString();
+
+// One page for tags: an inline-editable table plus an "add tag" row. Only
+// ADMIN may mutate tags; for AGENT the accessControlProvider hides the Edit /
+// Delete buttons and <CanAccess> hides the add form, so the table is read-only.
 export const TagList = () => {
-  const { tableProps } = useTable({
-    syncWithLocation: true,
-  });
+  const { tableProps, formProps, form, isEditing, saveButtonProps, cancelButtonProps, editButtonProps } =
+    useEditableTable<TagRecord>({
+      pagination: { pageSize: 50 }, // ~15 tags
+      // name is unique → 409 shown under the inline Name input
+      onMutationError: (error) => showConflictOnField(form, "name", error),
+      errorNotification: toastUnlessConflict,
+    });
 
   return (
     <List>
-      <Table {...tableProps} rowKey="id">
-        <Table.Column dataIndex="id" title="Id" />
-        <Table.Column dataIndex="name" title="Name" />
-        <Table.Column dataIndex="color" title="Color" />
-      </Table>
+      <CanAccess resource="tags" action="create">
+        <AddTag />
+      </CanAccess>
+
+      <Form {...formProps}>
+        <Table {...tableProps} rowKey="id">
+          <Table.Column<TagRecord> dataIndex="id" title="#" width={80} />
+          <Table.Column<TagRecord>
+            dataIndex="name"
+            title="Name"
+            render={(name, tag) =>
+              isEditing(tag.id) ? (
+                <Form.Item name="name" style={{ margin: 0 }} rules={[{ required: true, whitespace: true }]}>
+                  <Input />
+                </Form.Item>
+              ) : (
+                <Tag color={tag.color}>{name}</Tag>
+              )
+            }
+          />
+          <Table.Column<TagRecord>
+            dataIndex="color"
+            title="Colour"
+            render={(color, tag) =>
+              isEditing(tag.id) ? (
+                <Form.Item name="color" style={{ margin: 0 }} getValueFromEvent={toHex}>
+                  <ColorPicker showText format="hex" disabledAlpha />
+                </Form.Item>
+              ) : (
+                <code>{color}</code>
+              )
+            }
+          />
+          <Table.Column<TagRecord>
+            title="Actions"
+            width={140}
+            render={(_, tag) =>
+              isEditing(tag.id) ? (
+                <Space>
+                  <SaveButton {...saveButtonProps} hideText size="small" />
+                  <Button {...cancelButtonProps} size="small">
+                    Cancel
+                  </Button>
+                </Space>
+              ) : (
+                <Space>
+                  <EditButton {...editButtonProps(tag.id)} hideText size="small" />
+                  <DeleteButton recordItemId={tag.id} hideText size="small" />
+                </Space>
+              )
+            }
+          />
+        </Table>
+      </Form>
     </List>
+  );
+};
+
+const AddTag = () => {
+  const { formProps, saveButtonProps, form } = useForm<TagRecord, HttpError, Pick<TagRecord, "name" | "color">>({
+    action: "create",
+    redirect: false,
+    onMutationSuccess: () => form.resetFields(),
+    onMutationError: (error) => showConflictOnField(form, "name", error),
+    errorNotification: toastUnlessConflict,
+  });
+
+  return (
+    <Form {...formProps} layout="inline" initialValues={{ color: "#1677ff" }} style={{ marginBottom: 16 }}>
+      <Form.Item name="name" rules={[{ required: true, whitespace: true, message: "Name the tag" }]}>
+        <Input placeholder="New tag name" />
+      </Form.Item>
+      <Form.Item name="color" getValueFromEvent={toHex}>
+        <ColorPicker showText format="hex" disabledAlpha />
+      </Form.Item>
+      <SaveButton {...saveButtonProps}>Add tag</SaveButton>
+    </Form>
   );
 };
