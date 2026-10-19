@@ -8,6 +8,7 @@ import { CasbinModule } from './casbin/casbin.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
 import { validateEnv } from './config/env.validation.js';
+import { CustomersModule } from './customers/customers.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
@@ -24,6 +25,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PrismaModule,
     CasbinModule,
     AuthModule,
+    CustomersModule,
   ],
   controllers: [HealthController],
   providers: [

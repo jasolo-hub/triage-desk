@@ -37,18 +37,32 @@ export function toHttpException(
   }
 }
 
-// The field list sits in a different place depending on the engine/adapter.
+// Where the offending field is reported depends on the engine: the classic engine
+// sets meta.target; the pg driver adapter only gives the index name, which
+// Prisma names "<Model>_<field>_key" (e.g. Customer_email_key → email).
 function uniqueFields(
   error: Prisma.PrismaClientKnownRequestError,
 ): string | null {
   const meta = error.meta as
     | {
         target?: string[] | string;
-        driverAdapterError?: { cause?: { constraint?: { fields?: string[] } } };
+        modelName?: string;
+        driverAdapterError?: {
+          cause?: { constraint?: { fields?: string[]; index?: string } };
+        };
       }
     | undefined;
-  const fields =
-    meta?.target ?? meta?.driverAdapterError?.cause?.constraint?.fields;
-  if (!fields) return null;
-  return Array.isArray(fields) ? fields.join(', ') : fields;
+  const constraint = meta?.driverAdapterError?.cause?.constraint;
+  const fields = meta?.target ?? constraint?.fields;
+  if (fields) return Array.isArray(fields) ? fields.join(', ') : fields;
+  const index = constraint?.index;
+  if (
+    index &&
+    meta?.modelName &&
+    index.startsWith(`${meta.modelName}_`) &&
+    index.endsWith('_key')
+  ) {
+    return index.slice(meta.modelName.length + 1, -'_key'.length);
+  }
+  return null;
 }
