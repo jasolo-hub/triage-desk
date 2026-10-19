@@ -2,6 +2,7 @@
 # Both services here speak the same protocols, so the app code is identical.
 # S3Mock instead of MinIO: MinIO pulled its public Docker images in 2026; S3Mock
 # is a small, actively published S3-compatible server that creates buckets from env.
+# Objects are ephemeral (dev only) — restart the container to wipe uploads.
 services:
   postgres:
     image: postgres:16-alpine
@@ -20,12 +21,6 @@ services:
       - "9090:9090"
     environment:
       COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: triage-attachments
-      # keep objects between restarts
-      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
-      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /data
-    volumes:
-      - s3data:/data
 
 volumes:
   pgdata:
-  s3data:
