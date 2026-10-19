@@ -50,6 +50,7 @@ export const TransitionControl = ({ ticket }: Props) => {
   return (
     <>
       <Dropdown
+        trigger={["click"]} // a button you click, not a hover menu
         menu={{
           items: next.map((status) => ({ key: status, label: STATUS[status].label })),
           onClick: ({ key }) => setTarget(key as TicketStatus),
