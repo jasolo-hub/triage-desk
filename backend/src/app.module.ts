@@ -11,6 +11,7 @@ import { validateEnv } from './config/env.validation.js';
 import { CustomersModule } from './customers/customers.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { TicketsModule } from './tickets/tickets.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     CasbinModule,
     AuthModule,
     CustomersModule,
+    TicketsModule,
   ],
   controllers: [HealthController],
   providers: [
