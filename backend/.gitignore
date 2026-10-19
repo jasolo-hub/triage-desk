@@ -1,0 +1,4 @@
+# Prisma client is generated on install/build (postinstall/prebuild), never committed
+src/generated/
+# TypeScript incremental build cache
+*.tsbuildinfo
