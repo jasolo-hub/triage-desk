@@ -43,6 +43,8 @@ async function bootstrap() {
     SwaggerModule.createDocument(app, doc),
   );
 
+  // On SIGTERM (platform redeploy) run onModuleDestroy hooks, e.g. Prisma disconnect.
+  app.enableShutdownHooks();
   await app.listen(config.get('PORT', { infer: true }));
 }
 await bootstrap();

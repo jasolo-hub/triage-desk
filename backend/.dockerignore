@@ -1,0 +1,11 @@
+# Build context = backend/. Keep it small and secret-free.
+node_modules
+dist
+coverage
+src/generated
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+**/*.spec.ts
+README.md
