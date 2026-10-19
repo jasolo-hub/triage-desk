@@ -7,6 +7,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { CasbinService } from '../casbin/casbin.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthUser } from './auth-user.js';
 import { AuthService } from './auth.service.js';
@@ -19,6 +20,7 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly prisma: PrismaService,
+    private readonly casbin: CasbinService,
   ) {}
 
   @Public()
@@ -51,6 +53,10 @@ export class AuthController {
       select: { id: true, email: true, name: true, role: true },
     });
     if (!user) throw new NotFoundException('User no longer exists');
-    return user;
+    // Role from the DB (not the token) so the UI reflects a role change immediately.
+    return {
+      ...user,
+      permissions: await this.casbin.permissionsFor(user.role),
+    };
   }
 }
