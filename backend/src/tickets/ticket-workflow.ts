@@ -51,3 +51,55 @@ export function isOverdue(
 export function overdueCutoff(priority: TicketPriority, now: Date): Date {
   return new Date(now.getTime() - SLA_HOURS[priority] * HOUR_MS);
 }
+
+// ── Status transitions ───────────────────────────────────────────────────────
+
+/** The only allowed moves. CLOSED is final. */
+export const ALLOWED_TRANSITIONS: Record<
+  TicketStatus,
+  readonly TicketStatus[]
+> = {
+  OPEN: ['IN_PROGRESS'],
+  IN_PROGRESS: ['RESOLVED'],
+  RESOLVED: ['CLOSED', 'REOPENED'],
+  CLOSED: [],
+  REOPENED: ['IN_PROGRESS'],
+};
+
+/** A business-rule violation; the service maps it to HTTP 422. */
+export class TransitionError extends Error {}
+
+export interface TransitionInput {
+  from: TicketStatus;
+  to: TicketStatus;
+  /** When the ticket was last resolved (null if never). */
+  resolvedAt: Date | null;
+  now: Date;
+  reopenWindowDays: number;
+  /** Whether the request carries a non-empty resolution comment. */
+  hasResolutionComment: boolean;
+}
+
+const DAY_MS = 24 * HOUR_MS;
+
+export function assertTransition(input: TransitionInput): void {
+  const { from, to } = input;
+  if (!ALLOWED_TRANSITIONS[from].includes(to)) {
+    throw new TransitionError(`Cannot move a ticket from ${from} to ${to}`);
+  }
+  if (to === 'RESOLVED' && !input.hasResolutionComment) {
+    throw new TransitionError(
+      'Resolving a ticket requires a resolution comment',
+    );
+  }
+  if (to === 'REOPENED') {
+    const windowEnd = input.resolvedAt
+      ? input.resolvedAt.getTime() + input.reopenWindowDays * DAY_MS
+      : -Infinity; // never resolved → nothing to reopen
+    if (input.now.getTime() > windowEnd) {
+      throw new TransitionError(
+        `A ticket can only be reopened within ${input.reopenWindowDays} days of being resolved`,
+      );
+    }
+  }
+}
