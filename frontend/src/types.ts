@@ -1,5 +1,8 @@
 // Shapes from notes/API_CONTRACT.md. Kept by hand (D1: no shared package for
 // ~10 interfaces); the backend DTOs are the source of truth.
+// `type` instead of `interface` on purpose: Refine's hooks require
+// `T extends BaseRecord` (an index-signature type), which object type aliases
+// satisfy implicitly and interfaces do not.
 
 export type Role = "ADMIN" | "AGENT";
 export type TicketStatus =
@@ -11,57 +14,57 @@ export type TicketStatus =
 export type TicketPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
 /** `user` in login/refresh responses. */
-export interface AuthUser {
+export type AuthUser = {
   id: number;
   email: string;
   name: string;
   role: Role;
-}
+};
 
 /** `users` resource (ADMIN only). */
-export interface User extends AuthUser {
+export type User = AuthUser & {
   createdAt: string;
-}
+};
 
 /** `agents` resource: read-only assignee source for both roles (D15). */
-export interface Agent {
+export type Agent = {
   id: number;
   name: string;
   email: string;
   role: Role;
-}
+};
 
 /** `{ tickets: ['list', 'show', ...], ... }` derived from the Casbin policy. */
 export type Permissions = Record<string, string[]>;
 
 /** `GET /auth/me` */
-export interface Me extends AuthUser {
+export type Me = AuthUser & {
   permissions: Permissions;
-}
+};
 
 /** `POST /auth/login` and `POST /auth/refresh` */
-export interface AuthResponse {
+export type AuthResponse = {
   accessToken: string;
   refreshToken: string;
   user: AuthUser;
-}
+};
 
-export interface Customer {
+export type Customer = {
   id: number;
   name: string;
   email: string;
   company: string | null;
   createdAt: string;
   ticketCount?: number;
-}
+};
 
-export interface Tag {
+export type Tag = {
   id: number;
   name: string;
   color: string;
-}
+};
 
-export interface Ticket {
+export type Ticket = {
   id: number;
   title: string;
   description: string;
@@ -77,22 +80,22 @@ export interface Ticket {
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
-}
+};
 
 /** `POST /uploads` response; `attachmentKey` on a new comment is `key`. */
-export interface Upload {
+export type Upload = {
   key: string;
   name: string;
   contentType: string;
   size: number;
-}
+};
 
 /** `url` is a 5-minute presigned GET — never store it. */
-export interface Attachment extends Upload {
+export type Attachment = Upload & {
   url: string;
-}
+};
 
-export interface Comment {
+export type Comment = {
   id: number;
   ticketId: number;
   authorId: number;
@@ -101,38 +104,40 @@ export interface Comment {
   isResolution: boolean;
   attachment: Attachment | null;
   createdAt: string;
-}
+};
 
 /** `POST /tickets/bulk-transition` and `/tickets/bulk-assign` */
-export interface BulkResult {
+export type BulkResult = {
   updated: number[];
   failed: { id: number; reason: string }[];
-}
+};
 
 /** `GET /tickets/fields` — form help text, also the AI prompt context. */
-export interface TicketFieldOption {
+export type TicketFieldOption = {
   value: string;
   label: string;
   help?: string;
-}
+};
 
-export interface TicketField {
+export type TicketField = {
   name: string;
   label: string;
   type: string;
   required: boolean;
   help: string;
+  readOnly?: boolean; // status: shown, but changed only via the transition action
+  resource?: string; // reference fields: which resource the id points to
   options?: TicketFieldOption[];
-}
+};
 
-export interface TicketFields {
+export type TicketFields = {
   fields: TicketField[];
   rules: string[];
-}
+};
 
 /** Nest's default error body. `message` is a string[] for validation errors. */
-export interface ApiErrorBody {
+export type ApiErrorBody = {
   statusCode: number;
   message: string | string[];
   error?: string;
-}
+};
