@@ -25,6 +25,7 @@ import routerProvider, {
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { Placeholder } from "./pages/placeholder";
+import { TicketCreate, TicketEdit, TicketList, TicketShow } from "./pages/tickets";
 import { accessControlProvider } from "./providers/accessControlProvider";
 import { authProvider } from "./providers/authProvider";
 import dataProvider from "./providers/dataProvider";
@@ -102,10 +103,10 @@ function App() {
               >
                 <Route index element={<NavigateToResource resource="tickets" />} />
                 <Route path="/tickets">
-                  <Route index element={<Placeholder />} />
-                  <Route path="create" element={<Placeholder />} />
-                  <Route path="edit/:id" element={<Placeholder />} />
-                  <Route path="show/:id" element={<Placeholder />} />
+                  <Route index element={<TicketList />} />
+                  <Route path="create" element={<TicketCreate />} />
+                  <Route path="edit/:id" element={<TicketEdit />} />
+                  <Route path="show/:id" element={<TicketShow />} />
                 </Route>
                 <Route path="/customers">
                   <Route index element={<Placeholder />} />
