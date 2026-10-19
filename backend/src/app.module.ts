@@ -5,13 +5,16 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { CasbinGuard } from './casbin/casbin.guard.js';
 import { CasbinModule } from './casbin/casbin.module.js';
+import { CommentsModule } from './comments/comments.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter.js';
 import { validateEnv } from './config/env.validation.js';
 import { CustomersModule } from './customers/customers.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { TagsModule } from './tags/tags.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { TicketsModule } from './tickets/tickets.module.js';
     AuthModule,
     CustomersModule,
     TicketsModule,
+    CommentsModule,
+    TagsModule,
+    UsersModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -28,7 +28,7 @@ export function toHttpException(
       );
     case 'P2003': // foreign key violation (e.g. delete a customer that still has tickets)
       return new ConflictException(
-        'Record is still referenced by other records',
+        'Cannot delete: other records still reference this one',
       );
     case 'P2025': // record required by update/delete not found
       return new NotFoundException('Record not found');
