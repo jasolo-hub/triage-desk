@@ -24,10 +24,10 @@ import routerProvider, {
 
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
-import { Placeholder } from "./pages/placeholder";
 import { CustomerCreate, CustomerEdit, CustomerList, CustomerShow } from "./pages/customers";
 import { TagList } from "./pages/tags";
 import { TicketCreate, TicketEdit, TicketList, TicketShow } from "./pages/tickets";
+import { UserCreate, UserEdit, UserList } from "./pages/users";
 import { accessControlProvider } from "./providers/accessControlProvider";
 import { authProvider } from "./providers/authProvider";
 import dataProvider from "./providers/dataProvider";
@@ -118,9 +118,9 @@ function App() {
                 </Route>
                 <Route path="/tags" element={<TagList />} />
                 <Route path="/users">
-                  <Route index element={<Placeholder />} />
-                  <Route path="create" element={<Placeholder />} />
-                  <Route path="edit/:id" element={<Placeholder />} />
+                  <Route index element={<UserList />} />
+                  <Route path="create" element={<UserCreate />} />
+                  <Route path="edit/:id" element={<UserEdit />} />
                 </Route>
                 <Route path="*" element={<ErrorComponent />} />
               </Route>
