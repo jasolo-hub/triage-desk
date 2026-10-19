@@ -25,6 +25,7 @@ import routerProvider, {
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { Placeholder } from "./pages/placeholder";
+import { CustomerCreate, CustomerEdit, CustomerList, CustomerShow } from "./pages/customers";
 import { TicketCreate, TicketEdit, TicketList, TicketShow } from "./pages/tickets";
 import { accessControlProvider } from "./providers/accessControlProvider";
 import { authProvider } from "./providers/authProvider";
@@ -109,10 +110,10 @@ function App() {
                   <Route path="show/:id" element={<TicketShow />} />
                 </Route>
                 <Route path="/customers">
-                  <Route index element={<Placeholder />} />
-                  <Route path="create" element={<Placeholder />} />
-                  <Route path="edit/:id" element={<Placeholder />} />
-                  <Route path="show/:id" element={<Placeholder />} />
+                  <Route index element={<CustomerList />} />
+                  <Route path="create" element={<CustomerCreate />} />
+                  <Route path="edit/:id" element={<CustomerEdit />} />
+                  <Route path="show/:id" element={<CustomerShow />} />
                 </Route>
                 <Route path="/tags" element={<Placeholder />} />
                 <Route path="/users">
