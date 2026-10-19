@@ -9,6 +9,7 @@ import { PriorityTag } from "../../components/tickets/PriorityTag";
 import { StatusTag } from "../../components/tickets/StatusTag";
 import { canChangeTicket } from "../../domain/tickets";
 import type { AuthUser, Ticket } from "../../types";
+import { TicketComments } from "./comments";
 import { TransitionControl } from "./transition-control";
 
 export const TicketShow = () => {
@@ -69,6 +70,8 @@ export const TicketShow = () => {
               </Descriptions.Item>
             )}
           </Descriptions>
+
+          <TicketComments ticketId={ticket.id} />
         </>
       )}
     </Show>
