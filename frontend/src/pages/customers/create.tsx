@@ -1,72 +1,20 @@
-import React from "react";
 import { Create, useForm } from "@refinedev/antd";
-import { Form, Input, DatePicker } from "antd";
-import dayjs from "dayjs";
+import { Form } from "antd";
+import type { Customer } from "../../types";
+import { showConflictOnField, toastUnlessConflict } from "../../utils/conflict";
+import { CustomerFormFields } from "./form-fields";
 
 export const CustomerCreate = () => {
-  const { formProps, saveButtonProps, query } = useForm();
+  const { formProps, saveButtonProps, form } = useForm<Customer>({
+    // duplicate email → 409 → error under the Email field (see utils/conflict.ts)
+    onMutationError: (error) => showConflictOnField(form, "email", error),
+    errorNotification: toastUnlessConflict,
+  });
 
   return (
     <Create saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical">
-        <Form.Item
-          label="Name"
-          name={["name"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Email"
-          name={["email"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Company"
-          name={["company"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Created At"
-          name={["createdAt"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-          getValueProps={(value) => ({
-            value: value ? dayjs(value) : undefined,
-          })}
-        >
-          <DatePicker />
-        </Form.Item>
-        <Form.Item
-          label="Ticket Count"
-          name={["ticketCount"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
+        <CustomerFormFields />
       </Form>
     </Create>
   );
