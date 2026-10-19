@@ -1,74 +1,19 @@
-import React from "react";
 import { Edit, useForm } from "@refinedev/antd";
-import { Form, Input, DatePicker } from "antd";
-import dayjs from "dayjs";
+import { Form } from "antd";
+import type { User } from "../../types";
+import { showConflictOnField, toastUnlessConflict } from "../../utils/conflict";
+import { UserFormFields } from "./form-fields";
 
 export const UserEdit = () => {
-  const { formProps, saveButtonProps, query } = useForm();
-
-  const usersData = query?.data?.data;
+  const { formProps, saveButtonProps, form } = useForm<User>({
+    onMutationError: (error) => showConflictOnField(form, "email", error), // email taken → 409
+    errorNotification: toastUnlessConflict,
+  });
 
   return (
     <Edit saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical">
-        <Form.Item
-          label="Id"
-          name={["id"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input readOnly disabled />
-        </Form.Item>
-        <Form.Item
-          label="Email"
-          name={["email"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Name"
-          name={["name"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Role"
-          name={["role"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Created At"
-          name={["createdAt"]}
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-          getValueProps={(value) => ({
-            value: value ? dayjs(value) : undefined,
-          })}
-        >
-          <DatePicker />
-        </Form.Item>
+        <UserFormFields isCreate={false} />
       </Form>
     </Edit>
   );
