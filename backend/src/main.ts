@@ -1,15 +1,19 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import type { Env } from './config/env.validation.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
+  // why: Railway/Render terminate TLS in a proxy; without this every request
+  // has the proxy's IP and the per-IP login throttle would be shared by everyone.
+  app.set('trust proxy', 1);
   app.use(helmet());
   app.enableCors({
     origin: config
