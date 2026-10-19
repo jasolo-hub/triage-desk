@@ -37,6 +37,17 @@ export interface TicketFormMetadata {
 
 export const MAX_TAGS_PER_TICKET = 10;
 
+/** Field names are static (only help texts vary), so DTOs can validate against them. */
+export const TICKET_FIELD_NAMES = [
+  'title',
+  'description',
+  'priority',
+  'status',
+  'customerId',
+  'assigneeId',
+  'tagIds',
+] as const;
+
 const PRIORITY_TEXT: Record<TicketPriority, { label: string; help: string }> = {
   URGENT: {
     label: 'Urgent',
@@ -84,9 +95,8 @@ function statusText(
 }
 
 function hoursLabel(hours: number): string {
-  return hours >= 24 && hours % 24 === 0
-    ? `${hours}h (${hours / 24} days)`
-    : `${hours}h`;
+  if (hours < 48 || hours % 24 !== 0) return `${hours}h`;
+  return `${hours}h (${hours / 24} days)`;
 }
 
 export function ticketFormMetadata(
