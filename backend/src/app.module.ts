@@ -14,6 +14,7 @@ import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { TagsModule } from './tags/tags.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
+import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module.js';
     CommentsModule,
     TagsModule,
     UsersModule,
+    UploadsModule,
   ],
   controllers: [HealthController],
   providers: [

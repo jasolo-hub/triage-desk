@@ -75,11 +75,38 @@ export class CommentsService {
     });
     if (!ticket)
       throw new BadRequestException(`ticketId ${dto.ticketId} does not exist`);
+    const attachment = dto.attachmentKey
+      ? await this.loadAttachment(dto.attachmentKey)
+      : null;
     const row = await this.prisma.comment.create({
-      data: { ticketId: dto.ticketId, body: dto.body, authorId: user.id },
+      data: {
+        ticketId: dto.ticketId,
+        body: dto.body,
+        authorId: user.id,
+        // attachmentKey is UNIQUE: re-using a key already attached elsewhere is a P2002 → 409.
+        ...(attachment && {
+          attachmentKey: dto.attachmentKey,
+          attachmentName: attachment.name,
+          attachmentContentType: attachment.contentType,
+          attachmentSize: attachment.size,
+        }),
+      },
       include: INCLUDE,
     });
     return this.toComment(row);
+  }
+
+  // One HeadObject both proves the upload exists and returns its name, type and
+  // size as stored by the server — simpler and safer than trusting the client to
+  // repeat the upload response in the comment body.
+  private async loadAttachment(key: string) {
+    const stored = await this.storage.headObject(key);
+    if (!stored) {
+      throw new BadRequestException(
+        'attachmentKey does not exist, upload the file first',
+      );
+    }
+    return stored;
   }
 
   // Record-level rule (D4): Casbin lets both roles "edit comments"; only the
