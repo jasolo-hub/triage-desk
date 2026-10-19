@@ -1,6 +1,7 @@
 import { Create, useForm } from "@refinedev/antd";
 import { Form } from "antd";
 import type { Ticket } from "../../types";
+import { AiAssistant } from "../../components/AiAssistant";
 import { TicketFormFields } from "./form-fields";
 
 export const TicketCreate = () => {
@@ -12,6 +13,7 @@ export const TicketCreate = () => {
       <Form {...formProps} layout="vertical" initialValues={{ priority: "NORMAL" }}>
         <TicketFormFields />
       </Form>
+      <AiAssistant />
     </Create>
   );
 };

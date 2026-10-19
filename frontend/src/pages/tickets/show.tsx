@@ -2,6 +2,7 @@ import { useCan, useGetIdentity, useShow } from "@refinedev/core";
 import { Show } from "@refinedev/antd";
 import { Descriptions, Space, Typography } from "antd";
 import { Link } from "react-router";
+import { AiAssistant } from "../../components/AiAssistant";
 import { RelativeDate } from "../../components/RelativeDate";
 import { TagList } from "../../components/TagList";
 import { OverdueBadge } from "../../components/tickets/OverdueBadge";
@@ -74,6 +75,7 @@ export const TicketShow = () => {
           <TicketComments ticketId={ticket.id} />
         </>
       )}
+      <AiAssistant />
     </Show>
   );
 };

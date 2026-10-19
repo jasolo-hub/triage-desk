@@ -1,6 +1,7 @@
 import { Edit, useForm } from "@refinedev/antd";
 import { Form } from "antd";
 import type { Ticket } from "../../types";
+import { AiAssistant } from "../../components/AiAssistant";
 import { StatusTag } from "../../components/tickets/StatusTag";
 import { TicketFormFields } from "./form-fields";
 
@@ -24,6 +25,7 @@ export const TicketEdit = () => {
           defaults={ticket && { customerId: ticket.customerId, assigneeId: ticket.assigneeId, tagIds: ticket.tags.map((t) => t.id) }}
         />
       </Form>
+      <AiAssistant />
     </Edit>
   );
 };
