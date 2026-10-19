@@ -1,4 +1,4 @@
-import { Authenticated, Refine } from "@refinedev/core";
+import { Authenticated, CanAccess, Refine } from "@refinedev/core";
 import {
   AuthPage,
   ErrorComponent,
@@ -22,6 +22,7 @@ import routerProvider, {
   UnsavedChangesNotifier,
 } from "@refinedev/react-router";
 
+import { Forbidden } from "./components/Forbidden";
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { CustomerCreate, CustomerEdit, CustomerList, CustomerShow } from "./pages/customers";
@@ -104,23 +105,35 @@ function App() {
                 }
               >
                 <Route index element={<NavigateToResource resource="tickets" />} />
-                <Route path="/tickets">
-                  <Route index element={<TicketList />} />
-                  <Route path="create" element={<TicketCreate />} />
-                  <Route path="edit/:id" element={<TicketEdit />} />
-                  <Route path="show/:id" element={<TicketShow />} />
-                </Route>
-                <Route path="/customers">
-                  <Route index element={<CustomerList />} />
-                  <Route path="create" element={<CustomerCreate />} />
-                  <Route path="edit/:id" element={<CustomerEdit />} />
-                  <Route path="show/:id" element={<CustomerShow />} />
-                </Route>
-                <Route path="/tags" element={<TagList />} />
-                <Route path="/users">
-                  <Route index element={<UserList />} />
-                  <Route path="create" element={<UserCreate />} />
-                  <Route path="edit/:id" element={<UserEdit />} />
+                <Route
+                  element={
+                    // Without props, CanAccess checks the resource + action of
+                    // the current route (e.g. users/list, tickets/create), so
+                    // a hand-typed URL the role may not use shows 403 instead
+                    // of a page whose API calls would all fail.
+                    <CanAccess fallback={<Forbidden />}>
+                      <Outlet />
+                    </CanAccess>
+                  }
+                >
+                  <Route path="/tickets">
+                    <Route index element={<TicketList />} />
+                    <Route path="create" element={<TicketCreate />} />
+                    <Route path="edit/:id" element={<TicketEdit />} />
+                    <Route path="show/:id" element={<TicketShow />} />
+                  </Route>
+                  <Route path="/customers">
+                    <Route index element={<CustomerList />} />
+                    <Route path="create" element={<CustomerCreate />} />
+                    <Route path="edit/:id" element={<CustomerEdit />} />
+                    <Route path="show/:id" element={<CustomerShow />} />
+                  </Route>
+                  <Route path="/tags" element={<TagList />} />
+                  <Route path="/users">
+                    <Route index element={<UserList />} />
+                    <Route path="create" element={<UserCreate />} />
+                    <Route path="edit/:id" element={<UserEdit />} />
+                  </Route>
                 </Route>
                 <Route path="*" element={<ErrorComponent />} />
               </Route>
