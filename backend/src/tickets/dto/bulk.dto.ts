@@ -39,5 +39,7 @@ export class BulkAssignDto {
 
 export interface BulkResult {
   updated: number[];
+  /** Already in the requested state: a no-op, not an error (mixed selections are normal in bulk). */
+  skipped: number[];
   failed: { id: number; reason: string }[];
 }

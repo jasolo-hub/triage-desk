@@ -190,12 +190,28 @@ describe('TicketsService.bulkTransition', () => {
 
     expect(result).toEqual({
       updated: [1, 3],
+      skipped: [],
       failed: [
         { id: 2, reason: 'Cannot move a ticket from CLOSED to IN_PROGRESS' },
         { id: 4, reason: 'Ticket 4 not found' },
       ],
     });
     expect(db.get(2)!.status).toBe('CLOSED'); // failed ticket untouched
+  });
+
+  it('skips tickets already in the target status instead of failing them', async () => {
+    const { service, db } = setup([
+      ticket({ id: 1, status: 'OPEN' }),
+      ticket({ id: 2, status: 'IN_PROGRESS' }),
+    ]);
+
+    const result = await service.bulkTransition(
+      { ids: [1, 2], status: 'IN_PROGRESS' },
+      ADMIN,
+    );
+
+    expect(result).toEqual({ updated: [1], skipped: [2], failed: [] });
+    expect(db.get(1)!.status).toBe('IN_PROGRESS');
   });
 
   it('aborts on unexpected errors instead of reporting them as business failures', async () => {

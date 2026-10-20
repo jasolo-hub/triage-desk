@@ -12,7 +12,7 @@ type FormValues = { assigneeId?: number; status?: TicketStatus; comment?: string
 // Custom bulk actions on the selected rows (ADMIN only — the list renders this
 // only when can(tickets, bulk); the API checks the same permission). Each id
 // goes through the same domain rules as a single change, so the API reports
-// partial success: `{ updated: [...], failed: [{ id, reason }] }`.
+// partial success: `{ updated: [...], skipped: [...], failed: [{ id, reason }] }`.
 export const BulkActions = ({ selectedIds, onDone }: Props) => {
   const apiUrl = useApiUrl();
   const invalidate = useInvalidate();
@@ -33,11 +33,14 @@ export const BulkActions = ({ selectedIds, onDone }: Props) => {
     form.resetFields();
   };
 
-  const showSummary = ({ updated, failed }: BulkResult) => {
-    const total = updated.length + failed.length;
+  const showSummary = ({ updated, skipped, failed }: BulkResult) => {
+    const total = updated.length + skipped.length + failed.length;
+    // Skipped = already in the requested state. Normal for a mixed selection,
+    // so it is counted, not shown as a failure.
+    const skippedNote = skipped.length ? ` (${skipped.length} already there)` : "";
     open?.({
       type: failed.length ? "error" : "success",
-      message: `Updated ${updated.length} of ${total} tickets`,
+      message: `Updated ${updated.length} of ${total} tickets${skippedNote}`,
       description: failed.length
         ? failed.slice(0, 10).map((f) => `#${f.id}: ${f.reason}`).join("\n") +
           (failed.length > 10 ? `\n…and ${failed.length - 10} more` : "")

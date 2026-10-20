@@ -109,6 +109,8 @@ export type Comment = {
 /** `POST /tickets/bulk-transition` and `/tickets/bulk-assign` */
 export type BulkResult = {
   updated: number[];
+  /** Already in the requested state — a no-op, reported separately from failures. */
+  skipped: number[];
   failed: { id: number; reason: string }[];
 };
 

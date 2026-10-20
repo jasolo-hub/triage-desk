@@ -240,8 +240,20 @@ export class TicketsService {
     dto: BulkTransitionDto,
     user: AuthUser,
   ): Promise<BulkResult> {
-    const result: BulkResult = { updated: [], failed: [] };
+    const result: BulkResult = { updated: [], skipped: [], failed: [] };
     for (const id of dto.ids) {
+      // Already in the target status → skip, don't fail: an admin selecting a
+      // mixed page of tickets and choosing "In progress" expects the OPEN ones
+      // to move and the rest to be left alone. (A missing id falls through to
+      // transition(), which reports the 404 as a failure.)
+      const current = await this.prisma.ticket.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (current?.status === dto.status) {
+        result.skipped.push(id);
+        continue;
+      }
       try {
         await this.transition(
           id,
@@ -263,17 +275,25 @@ export class TicketsService {
     await this.assertReferencesExist({ assigneeId: dto.assigneeId });
     const existing = await this.prisma.ticket.findMany({
       where: { id: { in: dto.ids } },
-      select: { id: true },
+      select: { id: true, assigneeId: true },
     });
-    const ids = existing.map((t) => t.id);
+    // Same idea as bulkTransition: already assigned to that agent → skipped.
+    const skipped = existing
+      .filter((t) => t.assigneeId === dto.assigneeId)
+      .map((t) => t.id);
+    const ids = existing
+      .map((t) => t.id)
+      .filter((id) => !skipped.includes(id));
     await this.prisma.ticket.updateMany({
       where: { id: { in: ids } },
       data: { assigneeId: dto.assigneeId },
     });
+    const found = existing.map((t) => t.id);
     return {
       updated: dto.ids.filter((id) => ids.includes(id)),
+      skipped: dto.ids.filter((id) => skipped.includes(id)),
       failed: dto.ids
-        .filter((id) => !ids.includes(id))
+        .filter((id) => !found.includes(id))
         .map((id) => ({ id, reason: `Ticket ${id} not found` })),
     };
   }
