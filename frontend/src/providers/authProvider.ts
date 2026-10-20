@@ -37,6 +37,10 @@ export const authProvider: AuthProvider = {
       const { data } = await axiosInstance.post<AuthResponse>("/auth/login", { email, password });
       saveSession(data);
       resetMe(); // a different user may have been logged in before
+      // Also drop cached `can` answers and lists: anything cached while logged
+      // out or as another user (e.g. a `can: false` from a failed /auth/me)
+      // would otherwise hide menu items for this user until it goes stale.
+      queryClient.clear();
       return { success: true, redirectTo: "/" };
     } catch (error) {
       // 401 → "Invalid credentials", 429 → throttler message; shown by AuthPage

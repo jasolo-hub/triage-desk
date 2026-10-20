@@ -7,14 +7,13 @@ import { getMe } from "./authProvider";
 export const accessControlProvider: AccessControlProvider = {
   can: async ({ resource, action }) => {
     if (!resource) return { can: false }; // deny by default
-    try {
-      // `permissions` comes from the same Casbin policy the API enforces, so
-      // the UI and the API cannot drift apart. Unknown resource → denied.
-      const { permissions } = await getMe();
-      return { can: permissions[resource]?.includes(action) ?? false };
-    } catch {
-      return { can: false, reason: "Permissions could not be loaded" };
-    }
+    // `permissions` comes from the same Casbin policy the API enforces, so
+    // the UI and the API cannot drift apart. Unknown resource → denied.
+    // If /auth/me fails (API blip, expired session) this throws on purpose:
+    // react-query then retries and refetches on the next render instead of
+    // caching a `can: false` that would hide menu items for `staleTime`.
+    const { permissions } = await getMe();
+    return { can: permissions[resource]?.includes(action) ?? false };
   },
   options: {
     buttons: {
