@@ -60,7 +60,7 @@ Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Rende
 
 **Request pipeline (backend):** `helmet` → CORS → `ValidationPipe` (whitelist + forbid unknown fields + transform) → `JwtAuthGuard` → per-user throttle → `CasbinGuard` (fails closed: a route without an `@Access(resource, action)` rule is denied) → controller → service → Prisma. Prisma unique/FK violations are mapped to 409, missing rows to 404, business-rule violations to 422.
 
-**Domain model:** `User` (ADMIN | AGENT) · `Customer` (unique email) · `Ticket` (status, priority, FK customer, nullable FK assignee, tags m:n) · `Comment` (FK ticket, FK author, optional attachment in object storage, `isResolution` flag) · `Tag`.
+**Domain model:** `User` (ADMIN | AGENT) · `Customer` (unique, case-insensitive email — `citext`, so the rule holds for any writer, not just the API; D30) · `Ticket` (status, priority, FK customer, nullable FK assignee, tags m:n) · `Comment` (FK ticket, FK author, optional attachment in object storage, `isResolution` flag) · `Tag`.
 
 **Business rules** live in [`backend/src/tickets/ticket-workflow.ts`](backend/src/tickets/ticket-workflow.ts) as pure functions (no framework imports), applied by `TicketsService` inside one transaction:
 
@@ -110,6 +110,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 - **OAuth login** (bonus): would need a role-assignment story for first-time OAuth users (auto-assigning Agent is the safe default, auto-assigning Admin never is). Local auth already demonstrates hashing, rotation and revocation; OAuth adds a provider dependency without exercising new judgment.
 - **Multi-device sessions:** one refresh token per user keeps revocation a single nullable column. An admin tool rarely needs concurrent sessions.
 - **Redis / queues / GraphQL / microservices:** no concrete need at this size; every one of them is a second runtime to operate.
+- **One hand-adjusted migration:** `citext_emails` replaces Prisma's generated drop-and-recreate of the email columns with an in-place `ALTER COLUMN … TYPE citext` (Prisma has no cast for citext). Documented in the migration file and D30; every other migration is untouched generator output.
 - **Jest:** the tests use Vitest, not Jest. Nest 12's scaffold generates an ES-module project with Vitest; forcing Jest back in meant fighting the module format for no gain in what is tested.
 - **Frontend unit tests:** tests are concentrated where bugs cost trust — the backend business rules (88 unit tests, < 1 s, no DB) — plus one Playwright smoke (`frontend/e2e`) that proves the role gating end to end (agent sees a restricted admin *and* the API refuses the same actions) and walks a ticket through its whole lifecycle. Component-level UI tests would mostly re-test Refine and Ant Design.
 - **Full-text search index:** `ILIKE` on title/description is fine at 5 000 rows; a `pg_trgm` index is a one-migration change when it isn't.

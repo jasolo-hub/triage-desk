@@ -2,14 +2,20 @@
 // connects through the pg driver adapter (see src/prisma/prisma.service.ts).
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
   // Nest 12 scaffolds an ES-module project (D17), so the client is ESM too.
-  moduleFormat = "esm"
+  moduleFormat    = "esm"
+  // Needed for `extensions = [...]` below. Preview since 2022 and unchanged;
+  // the alternative is a hand-written CREATE EXTENSION in a migration (D30).
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  // citext: case-insensitive text, so the unique index on emails holds in the
+  // database itself, not only for writers that go through the API (D30).
+  extensions = [citext]
 }
 
 enum Role {
@@ -38,7 +44,7 @@ enum TicketPriority {
 // that lives in the DTO.
 model User {
   id                       Int       @id @default(autoincrement())
-  email                    String    @unique @db.VarChar(320) // 64 local part + "@" + 255 domain
+  email                    String    @unique @db.Citext // 64 local part + "@" + 255 domain
   name                     String    @db.VarChar(200)
   role                     Role      @default(AGENT)
   passwordHash             String
@@ -59,7 +65,7 @@ model User {
 model Customer {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(200)
-  email     String   @unique @db.VarChar(320)
+  email     String   @unique @db.Citext
   company   String?  @db.VarChar(200)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
