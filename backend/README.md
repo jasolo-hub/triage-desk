@@ -54,7 +54,7 @@ Validated at boot (`src/config/env.validation.ts`): a missing or malformed requi
 | `S3_FORCE_PATH_STYLE` | no (`false`) | `true` | Path-style URLs; `true` for S3Mock |
 | `AI_BASE_URL` | no | `https://api.groq.com/openai/v1` | Any OpenAI-compatible endpoint |
 | `AI_API_KEY` | no | `gsk_…` | Provider key; empty → `/api/ai/ask` answers 503, app still runs |
-| `AI_MODEL` | no | `llama-3.1-8b-instant` | Model name at that provider |
+| `AI_MODEL` | no | `qwen/qwen3.8-27b` | Model id at that provider (check its current model list) |
 | `REOPEN_WINDOW_DAYS` | no (`7`) | `7` | How long a RESOLVED ticket can be reopened |
 | `SEED_PASSWORD` | no (`Password123!`) | — | Password for all seeded users (seed only) |
 
