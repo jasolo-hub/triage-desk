@@ -13,7 +13,8 @@ import {
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { App as AntdApp } from "antd";
+import { App as AntdApp, Flex, Spin } from "antd";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router";
 import routerProvider, {
   CatchAllNavigate,
@@ -25,14 +26,32 @@ import routerProvider, {
 import { Forbidden } from "./components/Forbidden";
 import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
-import { CustomerCreate, CustomerEdit, CustomerList, CustomerShow } from "./pages/customers";
-import { TagList } from "./pages/tags";
-import { TicketCreate, TicketEdit, TicketList, TicketShow } from "./pages/tickets";
-import { UserCreate, UserEdit, UserList } from "./pages/users";
 import { accessControlProvider } from "./providers/accessControlProvider";
 import { authProvider } from "./providers/authProvider";
 import dataProvider from "./providers/dataProvider";
 import { queryClient } from "./providers/queryClient";
+
+// Resource pages are code-split; login and the layout stay in the main bundle.
+// All pages of a resource share one import(), so they come as one chunk on the
+// first visit to that resource. React.lazy needs a default export and the
+// pages use named ones, hence the `.then`.
+const ticketPages = () => import("./pages/tickets");
+const customerPages = () => import("./pages/customers");
+const tagPages = () => import("./pages/tags");
+const userPages = () => import("./pages/users");
+
+const TicketList = lazy(() => ticketPages().then((m) => ({ default: m.TicketList })));
+const TicketCreate = lazy(() => ticketPages().then((m) => ({ default: m.TicketCreate })));
+const TicketEdit = lazy(() => ticketPages().then((m) => ({ default: m.TicketEdit })));
+const TicketShow = lazy(() => ticketPages().then((m) => ({ default: m.TicketShow })));
+const CustomerList = lazy(() => customerPages().then((m) => ({ default: m.CustomerList })));
+const CustomerCreate = lazy(() => customerPages().then((m) => ({ default: m.CustomerCreate })));
+const CustomerEdit = lazy(() => customerPages().then((m) => ({ default: m.CustomerEdit })));
+const CustomerShow = lazy(() => customerPages().then((m) => ({ default: m.CustomerShow })));
+const TagList = lazy(() => tagPages().then((m) => ({ default: m.TagList })));
+const UserList = lazy(() => userPages().then((m) => ({ default: m.UserList })));
+const UserCreate = lazy(() => userPages().then((m) => ({ default: m.UserCreate })));
+const UserEdit = lazy(() => userPages().then((m) => ({ default: m.UserEdit })));
 
 function App() {
   return (
@@ -99,7 +118,17 @@ function App() {
                     fallback={<CatchAllNavigate to="/login" />} // keeps ?to= so login returns here
                   >
                     <ThemedLayout Header={() => <Header sticky />}>
-                      <Outlet />
+                      {/* Inside the layout, so the menu and header stay put
+                          while a resource's chunk is downloading. */}
+                      <Suspense
+                        fallback={
+                          <Flex justify="center" style={{ padding: 48 }}>
+                            <Spin size="large" />
+                          </Flex>
+                        }
+                      >
+                        <Outlet />
+                      </Suspense>
                     </ThemedLayout>
                   </Authenticated>
                 }
