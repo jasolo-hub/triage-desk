@@ -13,11 +13,20 @@ cd backend
 cp .env.example .env            # then set JWT_SECRET: openssl rand -base64 48
 npm install                     # also generates the Prisma client (postinstall)
 npx prisma migrate dev          # apply migrations
-npm run db:seed                 # demo data, ~5 s (wipes the database!)
+npm run db:seed                 # demo data, ~5 s (wipes the database! non-local hosts need SEED_CONFIRM=yes)
 npm run start:dev               # http://localhost:3000/api
 ```
 
-Demo logins (after seeding): `admin@triage.dev` (ADMIN) and `agent@triage.dev` (AGENT), password `SEED_PASSWORD` or `Password123!`.
+Demo logins (after seeding), password `SEED_PASSWORD` or `Password123!`:
+
+| Login | Role | For |
+|---|---|---|
+| `admin@triage.dev` (Alex Admin) | ADMIN | the author |
+| `agent@triage.dev` (Sam Agent) | AGENT | the author |
+| `reviewer-admin@triage.dev` (Riley Reviewer) | ADMIN | reviewers |
+| `reviewer-agent@triage.dev` (Reese Reviewer) | AGENT | reviewers |
+
+There is one session per user (a new login ends the previous one), so reviewers use their own accounts instead of the author's.
 
 ## Scripts
 
@@ -31,7 +40,7 @@ Demo logins (after seeding): `admin@triage.dev` (ADMIN) and `agent@triage.dev` (
 | `npm run lint` / `npm run format` | oxlint / prettier |
 | `npm run db:migrate` | `prisma migrate dev` — create/apply migrations in development |
 | `npm run db:deploy` | `prisma migrate deploy` — apply committed migrations (production) |
-| `npm run db:seed` | Deterministic demo data: 25 users, 800 customers, 15 tags, 5 000 tickets, ~12 000 comments |
+| `npm run db:seed` | Deterministic demo data: 26 users (2 admins, 24 agents), 800 customers, 15 tags, 5 000 tickets, ~12 000 comments. Refuses a non-local database unless `SEED_CONFIRM=yes` |
 
 ## Environment
 
@@ -57,6 +66,7 @@ Validated at boot (`src/config/env.validation.ts`): a missing or malformed requi
 | `AI_MODEL` | no | `qwen/qwen3.8-27b` | Model id at that provider (check its current model list) |
 | `REOPEN_WINDOW_DAYS` | no (`7`) | `7` | How long a RESOLVED ticket can be reopened |
 | `SEED_PASSWORD` | no (`Password123!`) | — | Password for all seeded users (seed only) |
+| `SEED_CONFIRM` | no | `yes` | Required to seed a database whose host is not `localhost`/`127.0.0.1` (seed only; the seed wipes every table) |
 
 ## Production
 
@@ -69,7 +79,7 @@ docker run -p 3000:3000 --env-file backend/.env triage-api   # use host.docker.i
 
 Render (current): Web Service, Root Directory `backend`, runtime Docker, health check `/api/health`, free plan (sleeps after idle; first request after that takes 30–60 s). `render.yaml` documents the same settings. Railway alternative: Root Directory `backend`, config path `/backend/railway.json`. In both cases set the env vars above in the dashboard.
 
-Seeding production is a one-off from a checkout (the seed is intentionally not in the image because it wipes all tables): `railway run npm run db:seed`, or `DATABASE_URL=<prod url> npm run db:seed`.
+Seeding production is a one-off from a checkout (the seed is intentionally not in the image because it wipes all tables): `SEED_CONFIRM=yes DATABASE_URL=<prod url> npm run db:seed` (or `SEED_CONFIRM=yes railway run npm run db:seed`). Without `SEED_CONFIRM=yes` the seed refuses any host other than `localhost`/`127.0.0.1`.
 
 ## Where things live
 

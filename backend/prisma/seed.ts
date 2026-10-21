@@ -1,5 +1,6 @@
 // Demo data at realistic scale. WIPES ALL DATA, then inserts a fixed dataset.
 //   npm run db:seed   (same as: npx prisma db seed)
+// A database that is not on localhost needs SEED_CONFIRM=yes (see below).
 //
 // Deterministic: faker is seeded and ids are assigned explicitly, so every run
 // produces the same users, customers, tickets and comments (dates are offsets
@@ -19,6 +20,18 @@ import {
   overdueCutoff,
   TICKET_PRIORITIES,
 } from '../src/tickets/ticket-workflow.js';
+
+// The TRUNCATE below wipes every table, so a production DATABASE_URL left in the
+// shell must not be enough to run it: only a local database is seeded without
+// an explicit SEED_CONFIRM=yes. Checked before any connection is opened.
+const LOCAL_HOSTS = ['localhost', '127.0.0.1'];
+const dbHost = new URL(process.env.DATABASE_URL ?? '').hostname;
+if (!LOCAL_HOSTS.includes(dbHost) && process.env.SEED_CONFIRM !== 'yes') {
+  console.error(
+    `Refusing to seed ${dbHost}: the seed wipes every table; set SEED_CONFIRM=yes if that database really should be reset.`,
+  );
+  process.exit(1);
+}
 
 const COUNTS = { agents: 24, customers: 800, tickets: 5000 };
 const BATCH_SIZE = 1000; // rows per INSERT; keeps each statement well under PG's parameter limit
@@ -205,9 +218,26 @@ async function main() {
       role: 'AGENT',
       passwordHash,
     },
+    // Own accounts for reviewers: one session per user (D3), so sharing the two
+    // logins above with the author would log each other out on every login.
+    {
+      id: 3,
+      email: 'reviewer-admin@triage.dev',
+      name: 'Riley Reviewer',
+      role: 'ADMIN',
+      passwordHash,
+    },
+    {
+      id: 4,
+      email: 'reviewer-agent@triage.dev',
+      name: 'Reese Reviewer',
+      role: 'AGENT',
+      passwordHash,
+    },
   ];
   const userEmails = new Set(users.map((u) => u.email));
-  while (users.length < COUNTS.agents + 1) {
+  const admins = users.filter((u) => u.role === 'ADMIN').length;
+  while (users.length < admins + COUNTS.agents) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
     const email = `${firstName}.${lastName}@triage.dev`
@@ -405,7 +435,8 @@ async function main() {
       `(${overdue} overdue), ${commentCount} comments, ${links} ticket-tag links.`,
   );
   console.log(
-    'Logins: admin@triage.dev / agent@triage.dev, password from SEED_PASSWORD (default Password123!)',
+    'Logins: admin@triage.dev, agent@triage.dev (author); reviewer-admin@triage.dev, ' +
+      'reviewer-agent@triage.dev (reviewers). Password from SEED_PASSWORD (default Password123!)',
   );
 }
 
