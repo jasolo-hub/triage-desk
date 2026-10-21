@@ -124,3 +124,4 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 4. Typed query DTOs for list endpoints so Swagger documents every filter.
 5. Audit trail of ticket status changes as its own table instead of inferring it from resolution comments.
 6. Run the Playwright smoke in CI against a seeded throwaway database.
+7. Shared rate-limit counters: `@nestjs/throttler` keeps its counters in each process, so with N API replicas the 10/min AI and login limits become 10×N. A Redis-backed throttler store fixes that, and it would be the first concrete reason to add Redis.
