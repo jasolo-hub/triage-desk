@@ -10,7 +10,7 @@ import {
   useSelect,
   useTable,
 } from "@refinedev/antd";
-import { Form, Input, Radio, Select, Space, Table } from "antd";
+import { Checkbox, Form, Input, Radio, Select, Space, Table } from "antd";
 import { RelativeDate } from "../../components/RelativeDate";
 import { TagList } from "../../components/TagList";
 import { OverdueBadge } from "../../components/tickets/OverdueBadge";
@@ -28,7 +28,15 @@ const toNumbers = (keys: React.Key[] | undefined) => (keys ?? []).map(Number);
 export const TicketList = () => {
   // Column filters, sort and page live in the URL (global syncWithLocation).
   // Every filter `field` below is on the API's whitelist for /tickets.
-  const { tableProps, searchFormProps, filters, sorters } = useTable<Ticket, HttpError, SearchValues>({
+  // The column filters are controlled (`filteredValue` from `filters`), not
+  // `defaultFilteredValue`: "My tickets" changes `assigneeId` from outside
+  // the table, and an uncontrolled column would send its stale state on the
+  // next table change and undo it. (antd wants all columns one way or the other.)
+  const { tableProps, searchFormProps, filters, setFilters, sorters, setCurrentPage } = useTable<
+    Ticket,
+    HttpError,
+    SearchValues
+  >({
     sorters: { initial: [{ field: "createdAt", order: "desc" }] },
     // Search box → `q` (title OR description, ILIKE on the API). An empty box
     // must drop the filter: `undefined` is removed, "" would be sent as `q=`.
@@ -38,6 +46,20 @@ export const TicketList = () => {
   const { data: me } = useGetIdentity<AuthUser>();
   const { data: canBulk } = useCan({ resource: "tickets", action: "bulk" });
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // "My tickets": an agent's daily view is "what is assigned to me", so it is
+  // one click instead of opening the Assignee filter and finding yourself.
+  // It is the same `assigneeId in [...]` filter as the column (so it lives in
+  // the URL and combines with the other filters); it shows as checked only
+  // when that filter is exactly [me] — picking other agents in the column
+  // unticks it.
+  const assigneeFilter = toNumbers(getDefaultFilter("assigneeId", filters, "in"));
+  const myTicketsOn = me !== undefined && assigneeFilter.length === 1 && assigneeFilter[0] === me.id;
+  const toggleMyTickets = (on: boolean) => {
+    // merge (default): only assigneeId changes; `undefined` removes it
+    setFilters([{ field: "assigneeId", operator: "in", value: on && me ? [me.id] : undefined }]);
+    setCurrentPage(1);
+  };
 
   const { selectProps: agentSelectProps } = useSelect<Agent>({
     resource: "agents",
@@ -65,6 +87,13 @@ export const TicketList = () => {
               style={{ width: 320 }}
             />
           </Form.Item>
+          <Checkbox
+            checked={myTicketsOn}
+            onChange={(e) => toggleMyTickets(e.target.checked)}
+            style={{ marginLeft: 16, alignSelf: "center" }}
+          >
+            My tickets
+          </Checkbox>
         </Form>
         {canBulk?.can && selectedIds.length > 0 && (
           <BulkActions selectedIds={selectedIds} onDone={() => setSelectedIds([])} />
@@ -88,7 +117,7 @@ export const TicketList = () => {
           sorter
           defaultSortOrder={getDefaultSortOrder("status", sorters)}
           render={(status) => <StatusTag status={status} />}
-          defaultFilteredValue={getDefaultFilter("status", filters, "in")}
+          filteredValue={getDefaultFilter("status", filters, "in") ?? null}
           filterDropdown={(props) => (
             <FilterDropdown {...props}>
               <Select mode="multiple" options={STATUS_OPTIONS} placeholder="Any status" style={{ minWidth: 200 }} />
@@ -101,7 +130,7 @@ export const TicketList = () => {
           sorter
           defaultSortOrder={getDefaultSortOrder("priority", sorters)}
           render={(priority) => <PriorityTag priority={priority} />}
-          defaultFilteredValue={getDefaultFilter("priority", filters, "in")}
+          filteredValue={getDefaultFilter("priority", filters, "in") ?? null}
           filterDropdown={(props) => (
             <FilterDropdown {...props}>
               <Select mode="multiple" options={PRIORITY_OPTIONS} placeholder="Any priority" style={{ minWidth: 200 }} />
@@ -112,7 +141,7 @@ export const TicketList = () => {
           dataIndex="isOverdue"
           title="SLA"
           render={(_, ticket) => <OverdueBadge ticket={ticket} />}
-          defaultFilteredValue={getDefaultFilter("isOverdue", filters, "in")}
+          filteredValue={getDefaultFilter("isOverdue", filters, "in") ?? null}
           filterDropdown={(props) => (
             // antd keeps filter values as key arrays; a radio has one value
             <FilterDropdown {...props} mapValue={(keys, event) => (event === "onChange" ? [keys] : keys?.[0])}>
@@ -131,7 +160,7 @@ export const TicketList = () => {
           dataIndex="customerId"
           title="Customer"
           render={(_, ticket) => ticket.customer.name}
-          defaultFilteredValue={getDefaultFilter("customerId", filters, "in")}
+          filteredValue={getDefaultFilter("customerId", filters, "in") ?? null}
           filterDropdown={(props) => (
             <FilterDropdown {...props} mapValue={toNumbers}>
               <Select mode="multiple" {...customerSelectProps} placeholder="Search customers" style={{ minWidth: 240 }} />
@@ -142,7 +171,7 @@ export const TicketList = () => {
           dataIndex="assigneeId"
           title="Assignee"
           render={(_, ticket) => ticket.assignee?.name ?? "Unassigned"}
-          defaultFilteredValue={getDefaultFilter("assigneeId", filters, "in")}
+          filteredValue={getDefaultFilter("assigneeId", filters, "in") ?? null}
           filterDropdown={(props) => (
             <FilterDropdown {...props} mapValue={toNumbers}>
               <Select mode="multiple" {...agentSelectProps} placeholder="Any assignee" style={{ minWidth: 220 }} />
