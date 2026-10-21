@@ -87,17 +87,28 @@ Seeding production is a one-off from a checkout (the seed is intentionally not i
 | What | Where |
 |---|---|
 | Ticket business rules (transitions, reopen window, SLA, overdue) | `src/tickets/ticket-workflow.ts` — pure functions, no Nest/Prisma |
-| Applying them (transaction, resolution comment, ownership, bulk) | `src/tickets/tickets.service.ts` |
+| Applying them (transaction, compare-and-swap writes, resolution comment, ownership, bulk) | `src/tickets/tickets.service.ts` |
 | Ticket form metadata (labels, help text, options, rules) | `src/tickets/ticket-fields.ts` → `GET /api/tickets/fields` and the AI prompt |
 | Casbin model + policy (role → resource → actions) | `src/casbin/casbin.policy.ts` |
 | Guards: JWT → per-user throttle → Casbin (fails closed) | `src/app.module.ts`, `src/auth/jwt-auth.guard.ts`, `src/casbin/casbin.guard.ts` |
-| Record-level rules (agent edits own tickets/comments) | `TicketsService.loadForChange`, `CommentsService.update` |
+| Record-level rules (agent edits own or unassigned tickets, own comments) | `TicketsService.loadForChange`, `CommentsService.update` |
+| Refresh-token rotation and replay detection | `src/auth/auth.service.ts` |
 | Refine simple-rest list parsing (filters, sort, pagination) | `src/common/list-query.ts` |
-| Upload allowlist + signature check | `src/uploads/upload-rules.ts` |
+| Upload allowlist, signature and file-name length check | `src/uploads/upload-rules.ts` |
 | AI system prompt | `src/ai/ai.prompt.ts` |
-| Prisma error → HTTP mapping (409/404) | `src/common/prisma-exception.filter.ts` |
+| Prisma error → HTTP mapping (400/409/404) | `src/common/prisma-exception.filter.ts` |
 | Schema, migrations, seed | `prisma/schema.prisma`, `prisma/migrations/`, `prisma/seed.ts` |
+
+## Ticket ownership
+
+- Unassigned tickets are the shared queue. An agent claims one by assigning themselves, or by starting work on it: moving an unassigned ticket to `IN_PROGRESS` assigns it to whoever starts the work (agent or admin). It can still be reassigned afterwards.
+- Once a ticket is assigned, only the assignee or an admin can edit or move it.
+- Ticket writes re-check what was validated (compare-and-swap). If two agents claim the same ticket at once, one wins. The other gets `409 Ticket was changed by someone else, reload it`, or a 403 if the winning claim had already landed when its request read the ticket.
+
+## Sessions
+
+There is one session per user. Each refresh rotates the refresh token. Presenting the token that was just rotated away counts as replay: the session is revoked and the response is a 401. Any other unknown token gets a plain 401 and leaves the session alone, so a guessed or garbage token cannot log anyone out. `/auth/refresh` is limited to 20 requests a minute per IP and `/uploads` to 20 a minute per user.
 
 ## Tests
 
-`npm test` runs 88 Vitest tests in under a second, no database needed: the full transition matrix, reopen-window boundary, SLA/overdue per priority, `TicketsService` rules against an in-memory Prisma fake (ownership 403, resolution comment, bulk partial failure), the list-query parser, the upload allowlist and the AI prompt content.
+`npm test` runs 98 Vitest tests in under a second, no database needed. They cover the full transition matrix, the reopen-window boundary and SLA/overdue per priority. `TicketsService` rules run against an in-memory Prisma fake: ownership 403, claim race 409, start-work ownership, resolution comment and bulk partial failure. `AuthService.refresh` covers rotation, replay versus garbage tokens, concurrent refresh and expiry. Also tested: the list-query parser, the upload allowlist and the AI prompt content.
