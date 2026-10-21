@@ -15,5 +15,17 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5173",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // The tests only talk to localhost or our own deployed hosts, so an OS
+        // proxy/PAC (e.g. left behind by a VPN tool) must not apply: Chromium
+        // honours it and fails with ERR_PROXY_CONNECTION_FAILED while curl works.
+        // (`--no-proxy-server` alone did not override a PAC on macOS; this pair does.)
+        launchOptions: { args: ["--proxy-server=direct://", "--proxy-bypass-list=*"] },
+      },
+    },
+  ],
 });
