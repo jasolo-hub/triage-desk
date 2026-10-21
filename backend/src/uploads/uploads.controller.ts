@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { Access } from '../auth/decorators.js';
 import { MAX_UPLOAD_BYTES } from './upload-rules.js';
@@ -19,6 +20,8 @@ export class UploadsController {
   constructor(private readonly uploads: UploadsService) {}
 
   @Access('uploads', 'create')
+  // Abuse/cost brake: every upload is a storage write of up to 5 MB (20/min per user).
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
