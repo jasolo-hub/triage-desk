@@ -117,7 +117,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 
 ## With more time
 
-1. Route-level code splitting of the admin bundle (currently one ~540 kB gzipped chunk; antd + Refine dominate).
+1. Shrink the first paint: routes are lazy and vendors are split into cacheable chunks, but the login → tickets path still downloads ~600 kB gzipped of antd + Refine; the next step is dropping the unused antd modules from the vendor chunk.
 2. A `RefreshToken` table for multi-device sessions and a visible "active sessions" page.
 3. Slimmer production image: run `prisma migrate deploy` as a platform pre-deploy step so the Prisma CLI can leave the runtime image (~150 MB saved).
 4. Typed query DTOs for list endpoints so Swagger documents every filter.
