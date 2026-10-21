@@ -2,7 +2,8 @@
 
 A small support-ticket tracker with a role-aware admin UI.
 
-- **Live admin:** _TBD after deploy_ (frontend on Vercel, API on Railway)
+- **Live admin:** https://triage-desk-mu.vercel.app · API: https://triage-desk-bz79.onrender.com/api (Swagger at `/api/docs`)
+- Free tiers: the API sleeps after ~15 min idle, so the first request can take 30–60 s (cold start); the DB may add a second.
 - **Demo logins:** `admin@triage.dev` (Admin) · `agent@triage.dev` (Agent) · password `Password123!`
 
 ```
@@ -95,10 +96,10 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 
 ## Deployment
 
-- **API:** Railway, from `backend/Dockerfile` (multi-stage, non-root, runs `prisma migrate deploy` then `node dist/main.js`). Health check `GET /api/health`. Env vars set in the service; `CORS_ORIGIN` = the Vercel URL.
-- **DB:** Neon Postgres (`DATABASE_URL` with `sslmode=require`).
+- **API:** Render free web service (Frankfurt), from `backend/Dockerfile` (multi-stage, non-root, runs `prisma migrate deploy` then `node dist/main.js`). Health check `GET /api/health`. Env vars set in the dashboard (`backend/render.yaml` lists them; `railway.json` is the equivalent for Railway); `CORS_ORIGIN` = the Vercel URL.
+- **DB:** Neon Postgres, Frankfurt (`DATABASE_URL` with `sslmode=verify-full`). Seeded once from a developer machine with `DATABASE_URL=<neon> npm run db:seed`.
 - **Storage:** Backblaze B2 private bucket + application key (`S3_*` vars; any S3-compatible store works — R2/S3/MinIO need only different env values).
-- **Frontend:** Vercel, root directory `frontend`, `VITE_API_URL` pointing at the Railway URL; `vercel.json` rewrites deep links to `index.html`.
+- **Frontend:** Vercel, root directory `frontend`, `VITE_API_URL` pointing at the Render URL; `vercel.json` rewrites deep links to `index.html`.
 - **AI:** any OpenAI-compatible provider; Groq free tier by default (`AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`). Unset = the helper reports itself unavailable, nothing else changes.
 
 ## Deliberately skipped (and why)
