@@ -57,7 +57,7 @@ What was customised, in short:
 
 `e2e/roles.spec.ts` (Playwright, Chromium only) has two tests:
 
-- **agent**: after logging in as `agent@triage.dev` the menu is exactly Tickets / Customers / Tags; the tickets list has no Create button and no row checkboxes (so no bulk actions); `/users` shows the "Not allowed" page. Then, with a token from the API, `POST /tickets` and `GET /users` must return 403 — the hidden UI is backed by the API.
+- **agent**: after logging in as `agent@triage.dev` the menu is exactly Tickets / Customers / Tags; the tickets list has a Create button but no row checkboxes (no bulk actions) and no Delete buttons; `/users` shows the "Not allowed" page. Then, with a token from the API: `POST /tickets` succeeds (the ticket starts OPEN and unassigned), the agent can claim it with `PATCH` (assignee = self), but `DELETE /tickets/:id`, `POST /tickets/bulk-assign` and `GET /users` return 403 — the hidden UI is backed by the API. The ticket is deleted with an admin token at the end.
 - **admin**: creates a ticket in the UI and moves it Open → In progress → Resolved → Closed. Resolving is refused without a comment, the resolution comment appears in the comments table, and once Closed there is no "Change status" left. The ticket is deleted through the API afterwards (even if the test failed), so runs leave no data behind.
 
 How to run (nothing is started for you — there is no `webServer` in the config):
