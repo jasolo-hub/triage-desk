@@ -75,14 +75,14 @@ Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Railw
 
 | | Admin | Agent |
 |---|---|---|
-| Tickets | full CRUD, transition any, bulk assign / bulk status | read all; create (new tickets start unassigned, queue-style); edit + transition **only tickets assigned to them**; no delete |
+| Tickets | full CRUD, transition any, bulk assign / bulk status | read all; create (new tickets start unassigned); edit + transition **only tickets assigned to them or still unassigned** (claim from the queue by self-assigning); no delete |
 | Comments | create, edit any, delete | create; edit own only |
 | Customers | full CRUD | read |
 | Tags | full CRUD | read |
 | Users | full CRUD (cannot delete self or drop own admin role) | no access — menu item absent, route denied |
 | AI helper / uploads | yes | yes |
 
-The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agents by Refine's access-control provider, which reads the permissions map the API derives from the same Casbin policy. Hiding is cosmetic; the API returns 403 regardless of what the browser shows. Record-level rules (own tickets, own comments) are enforced in the services because Casbin answers "may this role do this action", not "on this row".
+The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agents by Refine's access-control provider, which reads the permissions map the API derives from the same Casbin policy. Hiding is cosmetic; the API returns 403 regardless of what the browser shows. Record-level rules (own or unassigned tickets, own comments) are enforced in the services because Casbin answers "may this role do this action", not "on this row".
 
 ## Security notes
 

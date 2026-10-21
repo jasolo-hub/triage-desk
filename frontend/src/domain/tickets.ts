@@ -32,7 +32,8 @@ export const NEXT_STATUSES: Record<TicketStatus, TicketStatus[]> = {
   CLOSED: [],
 };
 
-// Same ownership rule as the API (AGENT edits/moves only tickets assigned to
-// them). Only decides whether to show the Edit / Change status controls.
+// Same ownership rule as the API: an AGENT may change tickets assigned to them
+// or still unassigned (the shared queue — they claim one by assigning
+// themselves). Only decides whether to show the Edit / Change status controls.
 export const canChangeTicket = (me: AuthUser | undefined, ticket: Pick<Ticket, "assigneeId">) =>
-  me?.role === "ADMIN" || (me !== undefined && ticket.assigneeId === me.id);
+  me?.role === "ADMIN" || (me !== undefined && (ticket.assigneeId === null || ticket.assigneeId === me.id));

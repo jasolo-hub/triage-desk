@@ -38,7 +38,7 @@ What was customised, in short:
 - `src/providers/dataProvider.ts` — stock `@refinedev/simple-rest` over that instance (no custom code; the API follows its conventions).
 - `src/providers/authProvider.ts` — login/logout/check, identity and permissions from one cached `GET /auth/me` per session. 401 logs out; 403 stays logged in and shows the API's message.
 - `src/providers/accessControlProvider.ts` — `can(resource, action)` is a lookup in the `permissions` map from `/auth/me`, which the API derives from its Casbin policy. Buttons the role cannot use are hidden; `<CanAccess>` in `App.tsx` shows a 403 page for routes the role cannot open.
-- Record-level rules (an AGENT edits/moves only tickets assigned to them and edits only their own comments) are mirrored in `domain/tickets.ts` / the comments table purely to hide controls.
+- Record-level rules (an AGENT edits/moves only tickets assigned to them or unassigned, and edits only their own comments) are mirrored in `domain/tickets.ts` / the comments table purely to hide controls.
 
 **All of this is cosmetic.** The API checks every request (Casbin + record rules) and answers 403 whatever the UI shows.
 
@@ -47,7 +47,7 @@ What was customised, in short:
 | | ADMIN | AGENT |
 |---|---|---|
 | Menu | Tickets, Customers, Tags, Users | Tickets, Customers, Tags |
-| Tickets | create, edit, delete, change status, bulk assign / bulk status | create (starts unassigned); edit and change status only on tickets assigned to them; no delete or bulk toolbar |
+| Tickets | create, edit, delete, change status, bulk assign / bulk status | create (starts unassigned); edit and change status only on tickets assigned to them or unassigned (claim by self-assigning); no delete or bulk toolbar |
 | Comments | add, edit any, delete | add, edit own |
 | Customers | full CRUD | read only |
 | Tags | add, edit inline, delete | read only |

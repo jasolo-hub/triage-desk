@@ -311,9 +311,13 @@ export class TicketsService {
   ): Promise<Ticket> {
     const ticket = await db.ticket.findUnique({ where: { id } });
     if (!ticket) throw new NotFoundException(`Ticket ${id} not found`);
-    if (user.role !== 'ADMIN' && ticket.assigneeId !== user.id) {
+    // Queue model: an unassigned ticket is up for grabs (an agent opens it and
+    // claims it by setting themselves as assignee); once assigned, only the
+    // assignee or an ADMIN may change it.
+    const claimable = ticket.assigneeId === null;
+    if (user.role !== 'ADMIN' && !claimable && ticket.assigneeId !== user.id) {
       throw new ForbiddenException(
-        'You can only change tickets assigned to you',
+        'You can only change tickets assigned to you or unassigned ones',
       );
     }
     return ticket;

@@ -52,6 +52,10 @@ test("agent sees a restricted admin, and the API enforces the same limits", asyn
   const ticket = await created.json();
   expect(ticket.status).toBe("OPEN");
   expect(ticket.assigneeId).toBeNull();
+  // … unassigned = shared queue: the agent can claim it by assigning themselves …
+  const claimed = await request.patch(`${API}/tickets/${ticket.id}`, { headers, data: { assigneeId: 2 } });
+  expect(claimed.status()).toBe(200);
+  expect((await claimed.json()).assignee.name).toBe("Sam Agent");
   // … but may not delete, bulk-act or manage users.
   expect((await request.delete(`${API}/tickets/${ticket.id}`, { headers })).status()).toBe(403);
   expect(

@@ -158,7 +158,7 @@ export function ticketFormMetadata(
         type: 'reference',
         resource: 'agents',
         required: false,
-        help: 'The agent responsible for the next step. Agents can only edit and move tickets assigned to them. Leave empty to keep the ticket in the unassigned queue.',
+        help: 'The agent responsible for the next step. Agents can only edit and move tickets assigned to them. Leave empty to keep the ticket in the unassigned queue. Leave empty to put the ticket in the shared queue; any agent can then claim it by assigning themselves.',
       },
       {
         name: 'tagIds',
@@ -173,7 +173,7 @@ export function ticketFormMetadata(
       `Status flow: OPEN → IN_PROGRESS → RESOLVED → CLOSED. RESOLVED → REOPENED within ${reopenWindowDays} days of resolution. REOPENED → IN_PROGRESS. Any other change is rejected.`,
       'Resolving requires a resolution comment explaining what fixed the issue.',
       `A ticket is overdue when it is not RESOLVED/CLOSED and older than its priority SLA (${slaSummary}).`,
-      'Agents can edit and change the status only of tickets assigned to them; admins can change any ticket.',
+      'Agents can edit and change the status of tickets assigned to them or not yet assigned (claim it by setting yourself as assignee); admins can change any ticket.',
     ],
   };
 }

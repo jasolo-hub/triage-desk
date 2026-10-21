@@ -65,6 +65,8 @@ function setup(rows: FakeTicket[]) {
   // $transaction(fn) just runs fn with the same fake: atomicity is Postgres' job.
   const prisma = {
     ...tx,
+    // assertReferencesExist() checks the assignee exists; every id "exists" here.
+    user: { count: vi.fn(async () => 1) },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const config = { get: vi.fn(() => 7) }; // REOPEN_WINDOW_DAYS
@@ -81,11 +83,10 @@ describe('TicketsService ownership (AGENT may only change assigned tickets)', ()
     expect(tx.ticket.update).not.toHaveBeenCalled();
   });
 
-  it('rejects an AGENT editing an unassigned ticket', async () => {
-    const { service } = setup([ticket({ id: 10, assigneeId: null })]);
-    await expect(service.update(10, { title: 'x' }, AGENT)).rejects.toThrow(
-      ForbiddenException,
-    );
+  it('lets an AGENT claim an unassigned ticket (queue model)', async () => {
+    const { service, db } = setup([ticket({ id: 10, assigneeId: null })]);
+    await service.update(10, { assigneeId: AGENT.id }, AGENT);
+    expect(db.get(10)!.assigneeId).toBe(AGENT.id);
   });
 
   it('rejects an AGENT transitioning a ticket assigned to someone else', async () => {
