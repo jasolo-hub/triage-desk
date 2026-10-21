@@ -52,3 +52,22 @@ What was customised, in short:
 | Customers | full CRUD | read only |
 | Tags | add, edit inline, delete | read only |
 | Users | full CRUD | 403 page |
+
+## E2E smoke
+
+`e2e/roles.spec.ts` (Playwright, Chromium only) has two tests:
+
+- **agent**: after logging in as `agent@triage.dev` the menu is exactly Tickets / Customers / Tags; the tickets list has no Create button and no row checkboxes (so no bulk actions); `/users` shows the "Not allowed" page. Then, with a token from the API, `POST /tickets` and `GET /users` must return 403 — the hidden UI is backed by the API.
+- **admin**: creates a ticket in the UI and moves it Open → In progress → Resolved → Closed. Resolving is refused without a comment, the resolution comment appears in the comments table, and once Closed there is no "Change status" left. The ticket is deleted through the API afterwards (even if the test failed), so runs leave no data behind.
+
+How to run (nothing is started for you — there is no `webServer` in the config):
+
+```bash
+# API on http://localhost:3000/api with the seeded DB, and:
+npm run dev -- --port 5173
+npm run test:e2e            # E2E_BASE_URL / E2E_API_URL override the defaults
+```
+
+`/auth/login` is rate-limited to 10 requests per minute per IP and one run logs in 3 times, so more than three runs within a minute fail with 429 at login.
+
+Why only these two flows: they cover what a unit test cannot see and what would hurt most if it broke silently — role gating that must hold in the browser *and* on the API, and the ticket workflow end to end through the real UI, API and database. Filters, forms and the other pages are built from Refine/antd parts and were checked by hand; the business rules themselves are unit-tested in the backend.
