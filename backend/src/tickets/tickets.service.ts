@@ -232,10 +232,18 @@ export class TicketsService {
         throw e;
       }
 
-      // Compare-and-swap on the status we validated against: if another request
-      // moved the ticket in the meantime, fail instead of applying a stale rule.
+      // Starting work implies ownership: an agent who starts work on a queue
+      // ticket becomes its owner; an admin starting work takes it too —
+      // explicit reassignment is still possible afterwards.
+      const takesOwnership =
+        dto.status === 'IN_PROGRESS' && ticket.assigneeId === null;
+
+      // Compare-and-swap on the status and assignee we validated against (the
+      // workflow rule and the ownership check): if another request moved or
+      // claimed the ticket in the meantime, fail instead of applying a stale
+      // decision or overwriting their claim.
       const { count } = await tx.ticket.updateMany({
-        where: { id, status: ticket.status },
+        where: { id, status: ticket.status, assigneeId: ticket.assigneeId },
         data: {
           status: dto.status,
           // resolvedAt marks the latest resolution; it starts the reopen window
@@ -246,6 +254,7 @@ export class TicketsService {
               : dto.status === 'REOPENED'
                 ? null
                 : ticket.resolvedAt,
+          assigneeId: takesOwnership ? user.id : undefined, // undefined = unchanged
         },
       });
       if (count !== 1)

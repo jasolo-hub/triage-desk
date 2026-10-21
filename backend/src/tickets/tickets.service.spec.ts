@@ -53,11 +53,13 @@ function setup(rows: FakeTicket[]) {
   const tx = {
     ticket: {
       findUnique: vi.fn(async ({ where }) => db.get(where.id) ?? null),
-      // Like the real UPDATE ... WHERE: writes only if the row still matches.
+      // Like the real UPDATE ... WHERE: writes only if the row still matches,
+      // and (like Prisma) leaves fields passed as undefined unchanged.
       updateMany: vi.fn(async ({ where, data }) => {
         const row = db.get(where.id);
         if (!row || !matches(row, where)) return { count: 0 };
-        Object.assign(row, data);
+        for (const [field, value] of Object.entries(data))
+          if (value !== undefined) Object.assign(row, { [field]: value });
         return { count: 1 };
       }),
       update: vi.fn(async ({ where, data }) =>
@@ -141,6 +143,22 @@ describe('TicketsService ownership (AGENT may only change assigned tickets)', ()
     expect(db.get(11)!.status).toBe('IN_PROGRESS');
   });
 
+  it('fails with 409 when another agent claimed the ticket before the transition was written', async () => {
+    const { service, db, tx } = setup([
+      ticket({ id: 10, assigneeId: OTHER_AGENT }),
+    ]);
+    tx.ticket.findUnique.mockResolvedValueOnce(
+      ticket({ id: 10, assigneeId: null }), // stale read: still unassigned
+    );
+    await expect(
+      service.transition(10, { status: 'IN_PROGRESS' }, AGENT),
+    ).rejects.toThrow(ConflictException);
+    expect(db.get(10)).toMatchObject({
+      status: 'OPEN',
+      assigneeId: OTHER_AGENT,
+    });
+  });
+
   it('returns 404 for a missing ticket', async () => {
     const { service } = setup([]);
     await expect(
@@ -182,6 +200,34 @@ describe('TicketsService.transition', () => {
     ).rejects.toThrow(UnprocessableEntityException);
     expect(tx.ticket.updateMany).not.toHaveBeenCalled();
     expect(tx.comment.create).not.toHaveBeenCalled();
+  });
+
+  it('starting work on an unassigned ticket assigns it to whoever starts it', async () => {
+    const { service, db } = setup([
+      ticket({ id: 10, assigneeId: null }),
+      ticket({ id: 11, assigneeId: null, status: 'REOPENED' }),
+    ]);
+    await service.transition(10, { status: 'IN_PROGRESS' }, AGENT);
+    await service.transition(11, { status: 'IN_PROGRESS' }, ADMIN);
+    expect(db.get(10)).toMatchObject({
+      status: 'IN_PROGRESS',
+      assigneeId: AGENT.id,
+    });
+    expect(db.get(11)).toMatchObject({
+      status: 'IN_PROGRESS',
+      assigneeId: ADMIN.id,
+    });
+  });
+
+  it('starting work on an assigned ticket keeps its assignee', async () => {
+    const { service, db } = setup([
+      ticket({ id: 10, assigneeId: AGENT.id }),
+      ticket({ id: 11, assigneeId: OTHER_AGENT }),
+    ]);
+    await service.transition(10, { status: 'IN_PROGRESS' }, AGENT);
+    await service.transition(11, { status: 'IN_PROGRESS' }, ADMIN);
+    expect(db.get(10)!.assigneeId).toBe(AGENT.id);
+    expect(db.get(11)!.assigneeId).toBe(OTHER_AGENT); // the admin does not take it
   });
 
   it('maps a forbidden move to 422', async () => {

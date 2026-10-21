@@ -77,7 +77,7 @@ function statusText(
     },
     IN_PROGRESS: {
       label: 'In progress',
-      help: 'An agent is actively working on it.',
+      help: 'An agent is actively working on it. Starting work on an unassigned ticket assigns it to whoever starts it.',
     },
     RESOLVED: {
       label: 'Resolved',
@@ -158,7 +158,7 @@ export function ticketFormMetadata(
         type: 'reference',
         resource: 'agents',
         required: false,
-        help: 'The agent responsible for the next step. Leave empty to keep the ticket in the shared queue: any agent can then claim it by assigning themselves. Once assigned, only that agent (or an admin) can edit or move it.',
+        help: 'The agent responsible for the next step. Leave empty to keep the ticket in the shared queue: any agent can then claim it by assigning themselves or by starting work on it. Once assigned, only that agent (or an admin) can edit or move it.',
       },
       {
         name: 'tagIds',
@@ -174,6 +174,7 @@ export function ticketFormMetadata(
       'Resolving requires a resolution comment explaining what fixed the issue.',
       `A ticket is overdue when it is not RESOLVED/CLOSED and older than its priority SLA (${slaSummary}).`,
       'Agents can edit and change the status of tickets assigned to them or not yet assigned (claim it by setting yourself as assignee); admins can change any ticket.',
+      'Moving an unassigned ticket to IN_PROGRESS assigns it to whoever starts the work (agent or admin); it can still be reassigned afterwards.',
     ],
   };
 }
