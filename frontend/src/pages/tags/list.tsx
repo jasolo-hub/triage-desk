@@ -1,5 +1,13 @@
 import { CanAccess, type HttpError } from "@refinedev/core";
-import { DeleteButton, EditButton, List, SaveButton, useEditableTable, useForm } from "@refinedev/antd";
+import {
+  DeleteButton,
+  EditButton,
+  getDefaultSortOrder,
+  List,
+  SaveButton,
+  useEditableTable,
+  useForm,
+} from "@refinedev/antd";
 import { Button, ColorPicker, Form, Input, Space, Table, Tag } from "antd";
 import type { Color } from "antd/es/color-picker";
 import type { Tag as TagRecord } from "../../types";
@@ -12,9 +20,11 @@ const toHex = (color: Color) => color.toHexString();
 // ADMIN may mutate tags; for AGENT the accessControlProvider hides the Edit /
 // Delete buttons and <CanAccess> hides the add form, so the table is read-only.
 export const TagList = () => {
-  const { tableProps, formProps, form, isEditing, saveButtonProps, cancelButtonProps, editButtonProps } =
+  const { tableProps, formProps, form, isEditing, saveButtonProps, cancelButtonProps, editButtonProps, sorters } =
     useEditableTable<TagRecord>({
       pagination: { pageSize: 50 }, // ~15 tags
+      // Alphabetical by default (matches the API default); # and Name headers sort server-side.
+      sorters: { initial: [{ field: "name", order: "asc" }] },
       // name is unique → 409 shown under the inline Name input
       onMutationError: (error) => showConflictOnField(form, "name", error),
       errorNotification: toastUnlessConflict,
@@ -28,10 +38,18 @@ export const TagList = () => {
 
       <Form {...formProps}>
         <Table {...tableProps} rowKey="id">
-          <Table.Column<TagRecord> dataIndex="id" title="#" width={80} />
+          <Table.Column<TagRecord>
+            dataIndex="id"
+            title="#"
+            width={80}
+            sorter
+            defaultSortOrder={getDefaultSortOrder("id", sorters)}
+          />
           <Table.Column<TagRecord>
             dataIndex="name"
             title="Name"
+            sorter
+            defaultSortOrder={getDefaultSortOrder("name", sorters)}
             render={(name, tag) =>
               isEditing(tag.id) ? (
                 <Form.Item name="name" style={{ margin: 0 }} rules={[{ required: true, whitespace: true }]}>
