@@ -31,8 +31,9 @@ test("agent sees a restricted admin, and the API enforces the same limits", asyn
   // Tickets list: wait for real rows, then check what is missing.
   const table = page.getByRole("table");
   await expect(table.getByRole("button", { name: "eye" }).first()).toBeVisible(); // a row's Show button
-  await expect(page.getByRole("button", { name: /Create/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Create/ })).toBeVisible(); // agents log tickets (D25)
   await expect(table.getByRole("checkbox")).toHaveCount(0); // no row selection = no bulk actions
+  await expect(table.getByRole("button", { name: "delete" })).toHaveCount(0); // no Delete on any row
 
   // A hand-typed URL the role may not open shows the 403 page, not a crash.
   await page.goto("/users");
@@ -42,13 +43,25 @@ test("agent sees a restricted admin, and the API enforces the same limits", asyn
   // The hiding above is cosmetic; the API must refuse the same actions.
   const token = await apiToken(request, "agent@triage.dev");
   const headers = { Authorization: `Bearer ${token}` };
-  const createTicket = await request.post(`${API}/tickets`, {
+  // Agent may create (D25); a new ticket starts OPEN and unassigned …
+  const created = await request.post(`${API}/tickets`, {
     headers,
-    data: { title: "should not exist", description: "agent may not create", customerId: 1 },
+    data: { title: `e2e agent-created ${Date.now()}`, description: "logged by an agent", customerId: 1 },
   });
-  expect(createTicket.status()).toBe(403);
-  const listUsers = await request.get(`${API}/users?_start=0&_end=1`, { headers });
-  expect(listUsers.status()).toBe(403);
+  expect(created.status()).toBe(201);
+  const ticket = await created.json();
+  expect(ticket.status).toBe("OPEN");
+  expect(ticket.assigneeId).toBeNull();
+  // … but may not delete, bulk-act or manage users.
+  expect((await request.delete(`${API}/tickets/${ticket.id}`, { headers })).status()).toBe(403);
+  expect(
+    (await request.post(`${API}/tickets/bulk-assign`, { headers, data: { ids: [ticket.id], assigneeId: null } })).status(),
+  ).toBe(403);
+  expect((await request.get(`${API}/users?_start=0&_end=1`, { headers })).status()).toBe(403);
+
+  // Cleanup needs an admin (agents cannot delete).
+  const adminHeaders = { Authorization: `Bearer ${await apiToken(request, "admin@triage.dev")}` };
+  expect((await request.delete(`${API}/tickets/${ticket.id}`, { headers: adminHeaders })).status()).toBe(200);
 });
 
 test("admin creates a ticket and moves it Open → In progress → Resolved → Closed", async ({ page, request }) => {

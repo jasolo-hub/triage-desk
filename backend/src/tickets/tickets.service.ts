@@ -123,6 +123,8 @@ export class TicketsService {
 
   async create(dto: CreateTicketDto): Promise<TicketResponse> {
     await this.assertReferencesExist(dto);
+    // New tickets start unassigned whoever logs them (Jira-style queue); an
+    // agent who wants to keep one picks themselves as assignee in the form.
     const row = await this.prisma.ticket.create({
       data: {
         title: dto.title,

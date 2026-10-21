@@ -9,7 +9,8 @@ export const TicketCreate = () => {
 
   return (
     <Create saveButtonProps={saveButtonProps}>
-      {/* status is always OPEN on create (API rule); NORMAL is the documented default priority */}
+      {/* status is always OPEN on create (API rule); NORMAL is the documented default priority;
+          assignee starts empty (queue-style) — an agent picks themselves to keep the ticket */}
       <Form {...formProps} layout="vertical" initialValues={{ priority: "NORMAL" }}>
         <TicketFormFields />
       </Form>

@@ -31,7 +31,7 @@ p, ADMIN, agents, list
 p, ADMIN, uploads, create
 p, ADMIN, ai, ask
 
-p, AGENT, tickets, list|show|edit|transition
+p, AGENT, tickets, list|show|create|edit|transition
 p, AGENT, customers, list|show
 p, AGENT, comments, list|create|edit
 p, AGENT, tags, list

@@ -47,7 +47,7 @@ What was customised, in short:
 | | ADMIN | AGENT |
 |---|---|---|
 | Menu | Tickets, Customers, Tags, Users | Tickets, Customers, Tags |
-| Tickets | create, edit, delete, change status, bulk assign / bulk status | edit and change status only on tickets assigned to them; no create, delete or bulk toolbar |
+| Tickets | create, edit, delete, change status, bulk assign / bulk status | create (starts unassigned); edit and change status only on tickets assigned to them; no delete or bulk toolbar |
 | Comments | add, edit any, delete | add, edit own |
 | Customers | full CRUD | read only |
 | Tags | add, edit inline, delete | read only |

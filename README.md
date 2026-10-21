@@ -75,7 +75,7 @@ Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Railw
 
 | | Admin | Agent |
 |---|---|---|
-| Tickets | full CRUD, transition any, bulk assign / bulk status | read all; edit + transition **only tickets assigned to them**; no create/delete |
+| Tickets | full CRUD, transition any, bulk assign / bulk status | read all; create (new tickets start unassigned, queue-style); edit + transition **only tickets assigned to them**; no delete |
 | Comments | create, edit any, delete | create; edit own only |
 | Customers | full CRUD | read |
 | Tags | full CRUD | read |
