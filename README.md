@@ -43,14 +43,16 @@ The brief leaves the stack open and grades the reasoning. I picked what I can bu
 | **Prisma 7 + PostgreSQL on Neon** | Schema is the source of truth, migrations are generated and committed, enums and constraints live in the DB (unique emails, FK `Restrict`/`SetNull`/`Cascade` chosen per relation). | Raw SQL/Knex: more control, far more boilerplate for CRUD at this size. |
 | **Casbin** (policy as code) | Two static roles → the policy is a 20-line TypeScript constant loaded with a string adapter. Reviewed in git, no policy table, no sync. | A DB-backed policy adapter would allow runtime editing nobody asked for. |
 | **Refine 5 + Ant Design** | A real admin framework: generated resources, inferencer-scaffolded pages, built-in list/filter/sort/pagination, forms, auth and access-control providers. The task explicitly wants generated admin tooling that is then customised, not a bespoke UI. | A hand-rolled React admin — exactly what the brief warns against. |
-| **Bearer JWT + rotating refresh tokens** | Frontend (Vercel) and API (Railway) are different origins, so cookie sessions would need `SameSite=None` plus CSRF tokens plus a proxy. Bearer tokens are never attached automatically by the browser, so there is no CSRF surface; CORS is locked to the frontend origin. | httpOnly cookies are XSS-safer for the token itself; see *Security* for the mitigations I chose instead. |
+| **Bearer JWT + rotating refresh tokens** | Frontend (Vercel) and API (Render) are different origins, so cookie sessions would need `SameSite=None` plus CSRF tokens plus a proxy. Bearer tokens are never attached automatically by the browser, so there is no CSRF surface; CORS is locked to the frontend origin. | httpOnly cookies are XSS-safer for the token itself; see *Security* for the mitigations I chose instead. |
 | **Object storage via the API** (multer in memory → S3 `PutObject`, Backblaze B2) | The bucket stays private, the server validates extension + declared type + magic bytes on the real bytes, no bucket CORS to configure. Nothing ever touches local disk. Downloads are 5-minute presigned URLs. | Browser-direct presigned PUT scales better for big files; irrelevant at a 5 MB cap. |
 | **AI helper = one `fetch`** to any OpenAI-compatible endpoint | Grounded on the ticket form's real field definitions; provider is three env vars (Groq free tier by default); no SDK; 10 s timeout; any failure is a 503 and the admin keeps working. | A vendor SDK or an agent framework — more code for a single grounded Q&A call. |
 
 ## Architecture
 
+The brief allows "API layer only if you expose something beyond the admin". Here the admin is a Refine single-page app, so the API *is* the admin's backend: every list, form and button in the UI is a call to it, and the same endpoints are what the live review can poke with Swagger or curl.
+
 ```
-Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Railway) ──▶ PostgreSQL (Neon)
+Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Render) ───▶ PostgreSQL (Neon)
                                                       │
                                                       ├──▶ S3-compatible bucket (Backblaze B2), private
                                                       └──▶ OpenAI-compatible chat endpoint (optional)
@@ -107,6 +109,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 - **OAuth login** (bonus): would need a role-assignment story for first-time OAuth users (auto-assigning Agent is the safe default, auto-assigning Admin never is). Local auth already demonstrates hashing, rotation and revocation; OAuth adds a provider dependency without exercising new judgment.
 - **Multi-device sessions:** one refresh token per user keeps revocation a single nullable column. An admin tool rarely needs concurrent sessions.
 - **Redis / queues / GraphQL / microservices:** no concrete need at this size; every one of them is a second runtime to operate.
+- **Jest:** the tests use Vitest, not Jest. Nest 12's scaffold generates an ES-module project with Vitest; forcing Jest back in meant fighting the module format for no gain in what is tested.
 - **Frontend unit tests:** tests are concentrated where bugs cost trust — the backend business rules (88 unit tests, < 1 s, no DB) — plus one Playwright smoke (`frontend/e2e`) that proves the role gating end to end (agent sees a restricted admin *and* the API refuses the same actions) and walks a ticket through its whole lifecycle. Component-level UI tests would mostly re-test Refine and Ant Design.
 - **Full-text search index:** `ILIKE` on title/description is fine at 5 000 rows; a `pg_trgm` index is a one-migration change when it isn't.
 - **Orphan upload cleanup / virus scanning:** uploads not attached to a comment stay in the bucket; a scheduled sweep is the obvious next step.
@@ -115,7 +118,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 
 1. Route-level code splitting of the admin bundle (currently one ~540 kB gzipped chunk; antd + Refine dominate).
 2. A `RefreshToken` table for multi-device sessions and a visible "active sessions" page.
-3. Slimmer production image: run `prisma migrate deploy` as a Railway pre-deploy step so the Prisma CLI can leave the runtime image (~150 MB saved).
+3. Slimmer production image: run `prisma migrate deploy` as a platform pre-deploy step so the Prisma CLI can leave the runtime image (~150 MB saved).
 4. Typed query DTOs for list endpoints so Swagger documents every filter.
 5. Audit trail of ticket status changes as its own table instead of inferring it from resolution comments.
 6. Run the Playwright smoke in CI against a seeded throwaway database.

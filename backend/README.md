@@ -40,7 +40,7 @@ Validated at boot (`src/config/env.validation.ts`): a missing or malformed requi
 | Name | Required | Example | Purpose |
 |---|---|---|---|
 | `NODE_ENV` | no (`development`) | `production` | Runtime mode |
-| `PORT` | no (`3000`) | `3000` | HTTP port (Railway sets it) |
+| `PORT` | no (`3000`) | `3000` | HTTP port (the hosting platform injects it) |
 | `DATABASE_URL` | **yes** | `postgresql://triage:triage@localhost:5432/triage` | Postgres connection (Neon in production, add `?sslmode=require`) |
 | `JWT_SECRET` | **yes**, ≥ 32 chars | output of `openssl rand -base64 48` | HS256 signing key for access tokens |
 | `JWT_ACCESS_TTL` | no (`15m`) | `15m` | Access-token lifetime |
@@ -67,7 +67,7 @@ docker build -t triage-api backend/
 docker run -p 3000:3000 --env-file backend/.env triage-api   # use host.docker.internal for local services
 ```
 
-Railway: service Root Directory `backend`, config file path `/backend/railway.json` (Railway needs the absolute path in a monorepo). The Dockerfile is picked up automatically; the healthcheck is `GET /api/health`, restart on failure. Set the env vars above in the service.
+Render (current): Web Service, Root Directory `backend`, runtime Docker, health check `/api/health`, free plan (sleeps after idle; first request after that takes 30–60 s). `render.yaml` documents the same settings. Railway alternative: Root Directory `backend`, config path `/backend/railway.json`. In both cases set the env vars above in the dashboard.
 
 Seeding production is a one-off from a checkout (the seed is intentionally not in the image because it wipes all tables): `railway run npm run db:seed`, or `DATABASE_URL=<prod url> npm run db:seed`.
 
@@ -89,4 +89,4 @@ Seeding production is a one-off from a checkout (the seed is intentionally not i
 
 ## Tests
 
-`npm test` runs 87 Vitest tests in under a second, no database needed: the full transition matrix, reopen-window boundary, SLA/overdue per priority, `TicketsService` rules against an in-memory Prisma fake (ownership 403, resolution comment, bulk partial failure), the list-query parser, the upload allowlist and the AI prompt content.
+`npm test` runs 88 Vitest tests in under a second, no database needed: the full transition matrix, reopen-window boundary, SLA/overdue per priority, `TicketsService` rules against an in-memory Prisma fake (ownership 403, resolution comment, bulk partial failure), the list-query parser, the upload allowlist and the AI prompt content.
