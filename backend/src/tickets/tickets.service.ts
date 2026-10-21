@@ -211,6 +211,8 @@ export class TicketsService {
     id: number,
     dto: TransitionTicketDto,
     user: AuthUser,
+    // Bulk passes false: triaging a queue is not "starting work on this ticket".
+    { takeOwnership = true }: { takeOwnership?: boolean } = {},
   ): Promise<TicketResponse> {
     const now = new Date();
     const row = await this.prisma.$transaction(async (tx) => {
@@ -232,11 +234,15 @@ export class TicketsService {
         throw e;
       }
 
-      // Starting work implies ownership: an agent who starts work on a queue
-      // ticket becomes its owner; an admin starting work takes it too —
-      // explicit reassignment is still possible afterwards.
+      // Starting work implies ownership: whoever moves ONE unassigned ticket to
+      // IN_PROGRESS becomes its owner (agent or admin); reassignment stays
+      // possible. Not applied in bulk (D28): an admin pushing a page of queue
+      // tickets to IN_PROGRESS is triaging, not working on all of them — bulk
+      // assign exists for the explicit choice.
       const takesOwnership =
-        dto.status === 'IN_PROGRESS' && ticket.assigneeId === null;
+        takeOwnership &&
+        dto.status === 'IN_PROGRESS' &&
+        ticket.assigneeId === null;
 
       // Compare-and-swap on the status and assignee we validated against (the
       // workflow rule and the ownership check): if another request moved or
@@ -304,6 +310,7 @@ export class TicketsService {
           id,
           { status: dto.status, comment: dto.comment },
           user,
+          { takeOwnership: false },
         );
         result.updated.push(id);
       } catch (e) {

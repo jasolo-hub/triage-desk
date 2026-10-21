@@ -279,6 +279,23 @@ describe('TicketsService.bulkTransition', () => {
     expect(db.get(2)!.status).toBe('CLOSED'); // failed ticket untouched
   });
 
+  it('does not take ownership in bulk: unassigned tickets stay unassigned', async () => {
+    const { service, db } = setup([
+      ticket({ id: 1, status: 'OPEN', assigneeId: null }),
+      ticket({ id: 2, status: 'OPEN', assigneeId: null }),
+    ]);
+
+    const result = await service.bulkTransition(
+      { ids: [1, 2], status: 'IN_PROGRESS' },
+      ADMIN,
+    );
+
+    expect(result.updated).toEqual([1, 2]);
+    expect(db.get(1)!.status).toBe('IN_PROGRESS');
+    expect(db.get(1)!.assigneeId).toBeNull(); // triage, not "started work" (D28)
+    expect(db.get(2)!.assigneeId).toBeNull();
+  });
+
   it('skips tickets already in the target status instead of failing them', async () => {
     const { service, db } = setup([
       ticket({ id: 1, status: 'OPEN' }),

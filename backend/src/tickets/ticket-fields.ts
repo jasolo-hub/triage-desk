@@ -77,7 +77,7 @@ function statusText(
     },
     IN_PROGRESS: {
       label: 'In progress',
-      help: 'An agent is actively working on it. Starting work on an unassigned ticket assigns it to whoever starts it.',
+      help: 'An agent is actively working on it. Starting work on an unassigned ticket (single status change) assigns it to whoever starts it; bulk status changes leave the assignee as is.',
     },
     RESOLVED: {
       label: 'Resolved',
@@ -174,7 +174,7 @@ export function ticketFormMetadata(
       'Resolving requires a resolution comment explaining what fixed the issue.',
       `A ticket is overdue when it is not RESOLVED/CLOSED and older than its priority SLA (${slaSummary}).`,
       'Agents can edit and change the status of tickets assigned to them or not yet assigned (claim it by setting yourself as assignee); admins can change any ticket.',
-      'Moving an unassigned ticket to IN_PROGRESS assigns it to whoever starts the work (agent or admin); it can still be reassigned afterwards.',
+      'Moving an unassigned ticket to IN_PROGRESS one at a time assigns it to whoever starts the work (agent or admin); it can still be reassigned afterwards. Bulk status changes never change the assignee — use bulk assign for that.',
     ],
   };
 }

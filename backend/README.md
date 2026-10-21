@@ -111,4 +111,4 @@ There is one session per user. Each refresh rotates the refresh token. Presentin
 
 ## Tests
 
-`npm test` runs 98 Vitest tests in under a second, no database needed. They cover the full transition matrix, the reopen-window boundary and SLA/overdue per priority. `TicketsService` rules run against an in-memory Prisma fake: ownership 403, claim race 409, start-work ownership, resolution comment and bulk partial failure. `AuthService.refresh` covers rotation, replay versus garbage tokens, concurrent refresh and expiry. Also tested: the list-query parser, the upload allowlist and the AI prompt content.
+`npm test` runs 99 Vitest tests in under a second, no database needed. They cover the full transition matrix, the reopen-window boundary and SLA/overdue per priority. `TicketsService` rules run against an in-memory Prisma fake: ownership 403, claim race 409, start-work ownership, resolution comment and bulk partial failure. `AuthService.refresh` covers rotation, replay versus garbage tokens, concurrent refresh and expiry. Also tested: the list-query parser, the upload allowlist and the AI prompt content.

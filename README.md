@@ -68,7 +68,7 @@ Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Rende
 - Moving to `RESOLVED` requires a resolution comment; it is stored with the status change in the same transaction.
 - `status` cannot be edited through the generic update endpoint; only the transition endpoint can change it.
 - `isOverdue` is computed from `createdAt + SLA(priority)` (urgent 4 h, high 24 h, normal 72 h, low 7 d) and ignored once a ticket is resolved or closed. The list filter `isOverdue=true` is a real SQL `WHERE`, so pagination stays correct. The clock does not restart on reopen: SLA measures time to the first fix that holds, so a reopened ticket is overdue if its original window has passed (D11).
-- Starting work takes ownership: moving an unassigned ticket to `IN_PROGRESS` assigns the actor (D28). Claiming a queue ticket and changing status are both compare-and-swap writes, so two agents acting at once get a 409 instead of a silent last-write-wins.
+- Starting work takes ownership: moving a single unassigned ticket to `IN_PROGRESS` assigns the actor; bulk status changes never touch the assignee (D28). Claiming a queue ticket and changing status are both compare-and-swap writes, so two agents acting at once get a 409 instead of a silent last-write-wins.
 - Bulk status change and bulk assign (Admin) run the same rule per ticket and report partial failures instead of aborting the batch.
 
 **Frontend ⇄ API contract:** the API speaks the convention of Refine's stock `@refinedev/simple-rest` provider (`_start/_end`, `_sort/_order`, `field_like`, `x-total-count`), so the frontend has zero custom data-provider code and the backend has one small, unit-tested query parser with a per-resource field whitelist (unknown filters are a 400, never silently ignored).
