@@ -8,6 +8,7 @@ import { Prisma, Tag } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateTagDto } from './dto/create-tag.dto.js';
 import { UpdateTagDto } from './dto/update-tag.dto.js';
+import { LIST_TX } from '../common/list-tx.js';
 
 const LIST_SPEC: ListQuerySpec<Prisma.TagWhereInput> = {
   filterable: { id: 'int', name: 'string' },
@@ -21,10 +22,13 @@ export class TagsService {
 
   async list(query: Record<string, unknown>): Promise<ListResult<Tag>> {
     const { where, orderBy, skip, take } = parseListQuery(query, LIST_SPEC);
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.tag.findMany({ where, orderBy, skip, take }),
-      this.prisma.tag.count({ where }),
-    ]);
+    const [items, total] = await this.prisma.$transaction(
+      [
+        this.prisma.tag.findMany({ where, orderBy, skip, take }),
+        this.prisma.tag.count({ where }),
+      ],
+      LIST_TX,
+    );
     return { items, total };
   }
 

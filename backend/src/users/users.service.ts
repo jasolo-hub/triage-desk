@@ -14,6 +14,7 @@ import { Prisma, Role } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
+import { LIST_TX } from '../common/list-tx.js';
 
 const ROLES = Object.values(Role);
 
@@ -64,16 +65,19 @@ export class UsersService {
     query: Record<string, unknown>,
   ): Promise<ListResult<UserResponse>> {
     const { where, orderBy, skip, take } = parseListQuery(query, USERS_SPEC);
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        select: USER_SELECT,
-      }),
-      this.prisma.user.count({ where }),
-    ]);
+    const [items, total] = await this.prisma.$transaction(
+      [
+        this.prisma.user.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          select: USER_SELECT,
+        }),
+        this.prisma.user.count({ where }),
+      ],
+      LIST_TX,
+    );
     return { items, total };
   }
 
@@ -82,16 +86,19 @@ export class UsersService {
     query: Record<string, unknown>,
   ): Promise<ListResult<AgentResponse>> {
     const { where, orderBy, skip, take } = parseListQuery(query, AGENTS_SPEC);
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        select: AGENT_SELECT,
-      }),
-      this.prisma.user.count({ where }),
-    ]);
+    const [items, total] = await this.prisma.$transaction(
+      [
+        this.prisma.user.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          select: AGENT_SELECT,
+        }),
+        this.prisma.user.count({ where }),
+      ],
+      LIST_TX,
+    );
     return { items, total };
   }
 

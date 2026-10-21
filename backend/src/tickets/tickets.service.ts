@@ -35,6 +35,7 @@ import {
   TransitionError,
 } from './ticket-workflow.js';
 import { TICKET_INCLUDE, TicketResponse, toTicket } from './ticket.mapper.js';
+import { LIST_TX } from '../common/list-tx.js';
 
 /**
  * isOverdue as SQL, so the filter runs in the database and pagination/total
@@ -93,16 +94,19 @@ export class TicketsService {
   ): Promise<ListResult<TicketResponse>> {
     const now = new Date(); // one "now" for the filter and the computed flags
     const { where, orderBy, skip, take } = parseListQuery(query, listSpec(now));
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.ticket.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        include: TICKET_INCLUDE,
-      }),
-      this.prisma.ticket.count({ where }),
-    ]);
+    const [rows, total] = await this.prisma.$transaction(
+      [
+        this.prisma.ticket.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          include: TICKET_INCLUDE,
+        }),
+        this.prisma.ticket.count({ where }),
+      ],
+      LIST_TX,
+    );
     return { items: rows.map((r) => toTicket(r, now)), total };
   }
 
@@ -283,9 +287,7 @@ export class TicketsService {
     const skipped = existing
       .filter((t) => t.assigneeId === dto.assigneeId)
       .map((t) => t.id);
-    const ids = existing
-      .map((t) => t.id)
-      .filter((id) => !skipped.includes(id));
+    const ids = existing.map((t) => t.id).filter((id) => !skipped.includes(id));
     await this.prisma.ticket.updateMany({
       where: { id: { in: ids } },
       data: { assigneeId: dto.assigneeId },

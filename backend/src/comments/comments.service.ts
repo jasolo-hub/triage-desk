@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
+import { LIST_TX } from '../common/list-tx.js';
 
 const LIST_SPEC: ListQuerySpec<Prisma.CommentWhereInput> = {
   filterable: { id: 'int', ticketId: 'int' },
@@ -41,16 +42,19 @@ export class CommentsService {
     if (query.ticketId === undefined)
       throw new BadRequestException('ticketId filter is required');
     const { where, orderBy, skip, take } = parseListQuery(query, LIST_SPEC);
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.comment.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        include: INCLUDE,
-      }),
-      this.prisma.comment.count({ where }),
-    ]);
+    const [rows, total] = await this.prisma.$transaction(
+      [
+        this.prisma.comment.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          include: INCLUDE,
+        }),
+        this.prisma.comment.count({ where }),
+      ],
+      LIST_TX,
+    );
     return {
       items: await Promise.all(rows.map((r) => this.toComment(r))),
       total,

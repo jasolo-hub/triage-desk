@@ -8,6 +8,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateCustomerDto } from './dto/create-customer.dto.js';
 import { UpdateCustomerDto } from './dto/update-customer.dto.js';
+import { LIST_TX } from '../common/list-tx.js';
 
 const LIST_SPEC: ListQuerySpec<Prisma.CustomerWhereInput> = {
   filterable: { id: 'int', name: 'string', email: 'string', company: 'string' },
@@ -46,16 +47,19 @@ export class CustomersService {
     query: Record<string, unknown>,
   ): Promise<ListResult<ReturnType<typeof toCustomer>>> {
     const { where, orderBy, skip, take } = parseListQuery(query, LIST_SPEC);
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.customer.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        select: SELECT,
-      }),
-      this.prisma.customer.count({ where }),
-    ]);
+    const [rows, total] = await this.prisma.$transaction(
+      [
+        this.prisma.customer.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          select: SELECT,
+        }),
+        this.prisma.customer.count({ where }),
+      ],
+      LIST_TX,
+    );
     return { items: rows.map(toCustomer), total };
   }
 
