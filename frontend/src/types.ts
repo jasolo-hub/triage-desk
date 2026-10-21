@@ -1,5 +1,6 @@
-// Shapes from notes/API_CONTRACT.md. Kept by hand (D1: no shared package for
-// ~10 interfaces); the backend DTOs are the source of truth.
+// Shapes mirror the API (see Swagger at `/api/docs`); the backend DTOs are the
+// source of truth. Kept by hand because the two apps share no package
+// (decision D1 in `docs/decisions.md`).
 // `type` instead of `interface` on purpose: Refine's hooks require
 // `T extends BaseRecord` (an index-signature type), which object type aliases
 // satisfy implicitly and interfaces do not.

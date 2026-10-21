@@ -85,7 +85,7 @@ function App() {
               },
               {
                 name: "tags",
-                list: "/tags", // create/edit happen inline in the list (F9)
+                list: "/tags", // create/edit happen inline in the list
                 meta: { icon: <TagsOutlined /> },
               },
               {
