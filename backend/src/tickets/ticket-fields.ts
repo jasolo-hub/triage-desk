@@ -158,7 +158,7 @@ export function ticketFormMetadata(
         type: 'reference',
         resource: 'agents',
         required: false,
-        help: 'The agent responsible for the next step. Agents can only edit and move tickets assigned to them. Leave empty to keep the ticket in the unassigned queue. Leave empty to put the ticket in the shared queue; any agent can then claim it by assigning themselves.',
+        help: 'The agent responsible for the next step. Leave empty to keep the ticket in the shared queue: any agent can then claim it by assigning themselves. Once assigned, only that agent (or an admin) can edit or move it.',
       },
       {
         name: 'tagIds',
