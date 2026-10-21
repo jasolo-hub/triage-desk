@@ -149,20 +149,50 @@ export class TicketsService {
     dto: UpdateTicketDto,
     user: AuthUser,
   ): Promise<TicketResponse> {
-    await this.loadForChange(id, user);
+    // Outside the transaction: plain existence lookups with their own clear
+    // 400s, no reason to run them while holding the ticket's row lock.
     await this.assertReferencesExist(dto);
-    const row = await this.prisma.ticket.update({
-      where: { id },
-      // undefined fields are left untouched by Prisma; `set` replaces the tag list.
-      data: {
-        title: dto.title,
-        description: dto.description,
-        priority: dto.priority,
-        customerId: dto.customerId,
-        assigneeId: dto.assigneeId,
-        tags: dto.tagIds && { set: dto.tagIds.map((tagId) => ({ id: tagId })) },
-      },
-      include: TICKET_INCLUDE,
+    const row = await this.prisma.$transaction(async (tx) => {
+      await this.loadForChange(id, user, tx);
+      // Compare-and-swap, like transition(): the write re-asserts the ownership
+      // just checked. Two agents claiming the same queue ticket both pass
+      // loadForChange; the first UPDATE wins, the second one (re-checked by
+      // Postgres after the first commits) matches no row → 409 instead of a
+      // silent re-assignment. An ADMIN may change any ticket, so only the id.
+      const { count } = await tx.ticket.updateMany({
+        where:
+          user.role === 'ADMIN'
+            ? { id }
+            : { id, OR: [{ assigneeId: null }, { assigneeId: user.id }] },
+        // undefined fields are left untouched by Prisma.
+        data: {
+          title: dto.title,
+          description: dto.description,
+          priority: dto.priority,
+          customerId: dto.customerId,
+          assigneeId: dto.assigneeId,
+          // Always set, so a tags-only edit still runs a real UPDATE: Prisma
+          // turns an updateMany without fields into a plain SELECT (no row lock).
+          updatedAt: new Date(),
+        },
+      });
+      if (count !== 1)
+        throw new ConflictException(
+          'Ticket was changed by someone else, reload it',
+        );
+      // updateMany cannot write relations. The UPDATE above holds the row lock
+      // until commit, so no other edit can slip in between the two writes.
+      // `set` replaces the whole tag list.
+      if (dto.tagIds) {
+        await tx.ticket.update({
+          where: { id },
+          data: { tags: { set: dto.tagIds.map((tagId) => ({ id: tagId })) } },
+        });
+      }
+      return tx.ticket.findUniqueOrThrow({
+        where: { id },
+        include: TICKET_INCLUDE,
+      });
     });
     return toTicket(row, new Date());
   }

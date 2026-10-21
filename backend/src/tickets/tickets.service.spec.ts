@@ -13,6 +13,7 @@ import { TicketsService } from './tickets.service.js';
 
 const ADMIN: AuthUser = { id: 1, role: 'ADMIN' };
 const AGENT: AuthUser = { id: 2, role: 'AGENT' };
+const OTHER_AGENT = 3;
 
 type FakeTicket = {
   id: number;
@@ -34,15 +35,28 @@ function ticket(overrides: Partial<FakeTicket> & { id: number }): FakeTicket {
   };
 }
 
+// Evaluates the `where` of the service's compare-and-swap writes: equality per
+// field plus OR, e.g. { id, status } or { id, OR: [{ assigneeId: null }, ...] }.
+function matches(
+  row: Record<string, unknown>,
+  where: Record<string, unknown>,
+): boolean {
+  return Object.entries(where).every(([field, expected]) =>
+    field === 'OR'
+      ? (expected as Record<string, unknown>[]).some((w) => matches(row, w))
+      : row[field] === expected,
+  );
+}
+
 function setup(rows: FakeTicket[]) {
   const db = new Map(rows.map((t) => [t.id, { ...t }]));
   const tx = {
     ticket: {
       findUnique: vi.fn(async ({ where }) => db.get(where.id) ?? null),
-      // Mirrors the compare-and-swap in transition(): only matches the expected status.
+      // Like the real UPDATE ... WHERE: writes only if the row still matches.
       updateMany: vi.fn(async ({ where, data }) => {
         const row = db.get(where.id);
-        if (!row || row.status !== where.status) return { count: 0 };
+        if (!row || !matches(row, where)) return { count: 0 };
         Object.assign(row, data);
         return { count: 1 };
       }),
@@ -65,8 +79,11 @@ function setup(rows: FakeTicket[]) {
   // $transaction(fn) just runs fn with the same fake: atomicity is Postgres' job.
   const prisma = {
     ...tx,
-    // assertReferencesExist() checks the assignee exists; every id "exists" here.
+    // assertReferencesExist() checks the assignee/tags exist; every id "exists" here.
     user: { count: vi.fn(async () => 1) },
+    tag: {
+      count: vi.fn(async ({ where }) => where.id.in.length),
+    },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const config = { get: vi.fn(() => 7) }; // REOPEN_WINDOW_DAYS
@@ -80,13 +97,29 @@ describe('TicketsService ownership (AGENT may only change assigned tickets)', ()
     await expect(service.update(10, { title: 'x' }, AGENT)).rejects.toThrow(
       ForbiddenException,
     );
-    expect(tx.ticket.update).not.toHaveBeenCalled();
+    expect(tx.ticket.updateMany).not.toHaveBeenCalled();
   });
 
   it('lets an AGENT claim an unassigned ticket (queue model)', async () => {
     const { service, db } = setup([ticket({ id: 10, assigneeId: null })]);
     await service.update(10, { assigneeId: AGENT.id }, AGENT);
     expect(db.get(10)!.assigneeId).toBe(AGENT.id);
+  });
+
+  it('answers 409 when another agent claimed the ticket between the read and the write', async () => {
+    const { service, tx, db } = setup([
+      ticket({ id: 10, assigneeId: OTHER_AGENT }), // the other agent's claim already committed
+    ]);
+    // ...but our ownership check still read the ticket as unassigned.
+    tx.ticket.findUnique.mockResolvedValueOnce(
+      ticket({ id: 10, assigneeId: null }),
+    );
+
+    await expect(
+      service.update(10, { assigneeId: AGENT.id, tagIds: [1] }, AGENT),
+    ).rejects.toThrow(ConflictException);
+    expect(db.get(10)!.assigneeId).toBe(OTHER_AGENT); // their claim stands
+    expect(tx.ticket.update).not.toHaveBeenCalled(); // tags not written either
   });
 
   it('rejects an AGENT transitioning a ticket assigned to someone else', async () => {
