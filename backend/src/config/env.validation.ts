@@ -25,6 +25,12 @@ export class Env {
   })
   DATABASE_URL: string;
 
+  // Connections per API instance (see prisma.service.ts); 10 = node-postgres' default.
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  DB_POOL_MAX: number = 10;
+
   // why: HS256 is only as strong as the secret; 32 chars ≈ 256 bits if random.
   @IsString()
   @MinLength(32)

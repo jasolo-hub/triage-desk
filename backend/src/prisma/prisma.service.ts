@@ -15,6 +15,13 @@ export class PrismaService
     super({
       adapter: new PrismaPg({
         connectionString: config.get('DATABASE_URL', { infer: true }),
+        // Explicit because it is the capacity knob: each API instance holds up
+        // to `max` connections, so instances × DB_POOL_MAX must fit the managed
+        // Postgres connection budget. At 10× traffic we add instances, not
+        // connections: lower this per instance or use Neon's pooled (-pooler)
+        // URL, which multiplexes many clients over few server connections.
+        // Queries beyond `max` queue for a free connection instead of failing.
+        max: config.get('DB_POOL_MAX', { infer: true }),
       }),
     });
   }

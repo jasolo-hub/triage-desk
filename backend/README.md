@@ -51,6 +51,7 @@ Validated at boot (`src/config/env.validation.ts`): a missing or malformed requi
 | `NODE_ENV` | no (`development`) | `production` | Runtime mode |
 | `PORT` | no (`3000`) | `3000` | HTTP port (the hosting platform injects it) |
 | `DATABASE_URL` | **yes** | `postgresql://triage:triage@localhost:5432/triage` | Postgres connection (Neon in production, add `?sslmode=require`) |
+| `DB_POOL_MAX` | no (`10`) | `10` | Max DB connections per API instance; instances × this must fit the database's connection limit |
 | `JWT_SECRET` | **yes**, ≥ 32 chars | output of `openssl rand -base64 48` | HS256 signing key for access tokens |
 | `JWT_ACCESS_TTL` | no (`15m`) | `15m` | Access-token lifetime |
 | `JWT_REFRESH_TTL_DAYS` | no (`7`) | `7` | Refresh-token lifetime in days |
