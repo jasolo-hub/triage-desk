@@ -32,6 +32,10 @@ export class AuthController {
   }
 
   @Public()
+  // Public, so counted per IP (D22). A browser refreshes about once per 15-min
+  // access token; 20/min leaves room for an office behind one NAT while capping
+  // the DB lookups an anonymous caller can trigger.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('refresh')
   @HttpCode(200)
   refresh(@Body() dto: RefreshDto) {

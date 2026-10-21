@@ -45,9 +45,10 @@ export class AuthService {
     return this.issueTokens(user, null);
   }
 
-  // Rotation with replay detection (D3). Token format is "<userId>.<secret>":
-  // the id lets us find the session even when the secret is stale, which is
-  // exactly the case we must detect (someone re-using an already rotated token).
+  // Rotation with replay detection (D3, D18, D27). Token format is
+  // "<userId>.<secret>": the id lets us find the session even when the secret
+  // is stale, which is exactly the case we must detect (someone re-using an
+  // already rotated token).
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const [idPart, secret] = refreshToken.split('.');
     const userId = Number(idPart);
@@ -60,19 +61,28 @@ export class AuthService {
     }
 
     const presented = sha256(refreshToken);
-    if (!safeEqual(presented, user.refreshTokenHash)) {
-      // A syntactically valid but stale token = replay of a rotated token
+    if (safeEqual(presented, user.refreshTokenHash)) {
+      if (user.refreshTokenExpiresAt < new Date()) {
+        await this.revoke(user.id);
+        throw new UnauthorizedException('Session expired, please log in again');
+      }
+      return this.issueTokens(user, presented);
+    }
+    if (
+      user.previousRefreshTokenHash &&
+      safeEqual(presented, user.previousRefreshTokenHash)
+    ) {
+      // The token we rotated away last came back: someone kept a copy of it
       // (possibly stolen). Kill the session so neither party can continue.
       await this.revoke(user.id);
       throw new UnauthorizedException(
         'Refresh token reuse detected, session revoked',
       );
     }
-    if (user.refreshTokenExpiresAt < new Date()) {
-      await this.revoke(user.id);
-      throw new UnauthorizedException('Session expired, please log in again');
-    }
-    return this.issueTokens(user, presented);
+    // Never issued for this session (garbage, a guess, a token from a session
+    // that a newer login replaced): reject with no side effects, otherwise
+    // anyone who knows a user id could log that user out.
+    throw new UnauthorizedException('Invalid refresh token');
   }
 
   async logout(userId: number): Promise<void> {
@@ -91,6 +101,9 @@ export class AuthService {
     const data = {
       refreshTokenHash: sha256(refreshToken),
       refreshTokenExpiresAt: new Date(Date.now() + ttlDays * DAY_MS),
+      // The outgoing token, so a replay of it can be told apart from garbage
+      // (D27). Login passes null: a new session has no history.
+      previousRefreshTokenHash: previousHash,
     };
 
     if (previousHash === null) {
@@ -122,7 +135,11 @@ export class AuthService {
   private async revoke(userId: number): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshTokenHash: null, refreshTokenExpiresAt: null },
+      data: {
+        refreshTokenHash: null,
+        refreshTokenExpiresAt: null,
+        previousRefreshTokenHash: null,
+      },
     });
   }
 }
