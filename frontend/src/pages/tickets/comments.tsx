@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CanAccess, type HttpError, useGetIdentity, useNotification } from "@refinedev/core";
 import { DeleteButton, EditButton, SaveButton, useEditableTable, useForm } from "@refinedev/antd";
-import { Button, Form, Input, Space, Table, Tag, theme, Typography, Upload, type UploadFile } from "antd";
+import { Button, Form, Image, Input, Space, Table, Tag, theme, Typography, Upload, type UploadFile } from "antd";
 import { PaperClipOutlined, UploadOutlined } from "@ant-design/icons";
 import { RelativeDate } from "../../components/RelativeDate";
 import { axiosInstance } from "../../providers/api";
@@ -76,12 +76,23 @@ export const TicketComments = ({ ticketId }: Props) => {
             title="Attachment"
             width={200}
             render={(a: Comment["attachment"]) =>
-              a && (
-                // presigned GET, valid 5 min from when the list was loaded
+              a &&
+              // Images show inline (click = full-size preview); other allowed
+              // types (pdf, txt) stay a download link. `url` is a presigned GET,
+              // valid 5 min from when the list was loaded — enough for a page
+              // view; a reload issues fresh ones.
+              (a.contentType.startsWith("image/") ? (
+                <Space direction="vertical" size={2}>
+                  <Image src={a.url} alt={a.name} width={64} height={64} style={{ objectFit: "cover" }} />
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {a.name} ({formatSize(a.size)})
+                  </Typography.Text>
+                </Space>
+              ) : (
                 <a href={a.url} target="_blank" rel="noopener noreferrer">
                   <PaperClipOutlined /> {a.name} ({formatSize(a.size)})
                 </a>
-              )
+              ))
             }
           />
           <Table.Column<Comment>
