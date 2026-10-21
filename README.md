@@ -4,7 +4,7 @@ A small support-ticket tracker with a role-aware admin UI.
 
 - **Live admin:** https://triage-desk-mu.vercel.app · API: https://triage-desk-bz79.onrender.com/api (Swagger at `/api/docs`)
 - Free tiers: the API sleeps after ~15 min idle, so the first request can take 30–60 s (cold start); the DB may add a second.
-- **Demo logins:** `admin@triage.dev` (Admin) · `agent@triage.dev` (Agent) · password `Password123!`
+- **Demo logins** (password `Password123!`): `reviewer-admin@triage.dev` (Admin) · `reviewer-agent@triage.dev` (Agent). The seed also has `admin@triage.dev` / `agent@triage.dev`; sessions are one-per-user, so use the reviewer pair to avoid logging someone else out.
 
 ```
 backend/    NestJS 12 API · Prisma 7 + PostgreSQL (Neon) · Casbin RBAC · S3-compatible storage (Backblaze B2) · AI field helper
@@ -12,7 +12,7 @@ frontend/   Refine 5 admin (Ant Design) · Vite · stock simple-rest data provid
 docker-compose.yml   local Postgres + S3Mock for development only
 ```
 
-Each folder has its own README with env tables, scripts and a code map: [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md).
+Each folder has its own README with env tables, scripts and a code map: [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md). Every non-obvious choice is written up in [docs/decisions.md](docs/decisions.md); code comments cite them by number (`D4`, `D16`, …).
 
 ## Quick start (local)
 
@@ -67,7 +67,8 @@ Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Rende
 - Status flow `OPEN → IN_PROGRESS → RESOLVED → CLOSED`; `RESOLVED → REOPENED` only within 7 days of resolution; `REOPENED → IN_PROGRESS`. Everything else is a 422.
 - Moving to `RESOLVED` requires a resolution comment; it is stored with the status change in the same transaction.
 - `status` cannot be edited through the generic update endpoint; only the transition endpoint can change it.
-- `isOverdue` is computed from `createdAt + SLA(priority)` (urgent 4 h, high 24 h, normal 72 h, low 7 d) and ignored once a ticket is resolved or closed. The list filter `isOverdue=true` is a real SQL `WHERE`, so pagination stays correct.
+- `isOverdue` is computed from `createdAt + SLA(priority)` (urgent 4 h, high 24 h, normal 72 h, low 7 d) and ignored once a ticket is resolved or closed. The list filter `isOverdue=true` is a real SQL `WHERE`, so pagination stays correct. The clock does not restart on reopen: SLA measures time to the first fix that holds, so a reopened ticket is overdue if its original window has passed (D11).
+- Starting work takes ownership: moving an unassigned ticket to `IN_PROGRESS` assigns the actor (D28). Claiming a queue ticket and changing status are both compare-and-swap writes, so two agents acting at once get a 409 instead of a silent last-write-wins.
 - Bulk status change and bulk assign (Admin) run the same rule per ticket and report partial failures instead of aborting the batch.
 
 **Frontend ⇄ API contract:** the API speaks the convention of Refine's stock `@refinedev/simple-rest` provider (`_start/_end`, `_sort/_order`, `field_like`, `x-total-count`), so the frontend has zero custom data-provider code and the backend has one small, unit-tested query parser with a per-resource field whitelist (unknown filters are a 400, never silently ignored).
@@ -90,7 +91,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 ## Security notes
 
 - Passwords: argon2id. Login throttled per IP.
-- Access token: HS256 JWT, 15 min. Refresh token: 256 random bits, stored only as a SHA-256 hash, rotated on every use; presenting an already-rotated token is treated as replay and revokes the session.
+- Access token: HS256 JWT, 15 min — stateless, so it stays valid up to 15 min after logout or a role change (the refresh token is revoked immediately, so nothing outlives that window). Refresh token: 256 random bits, stored only as a SHA-256 hash, rotated on every use; presenting the *previous* token is treated as replay and revokes the session, while an unknown token is a plain 401 so nobody can log someone else out by guessing (D27).
 - No cookies → no CSRF surface; CORS allows only the configured frontend origin. Trade-off: tokens sit in `localStorage`, readable by XSS. Mitigations: short access-token life, rotation with replay detection, React/Ant Design escaping, no raw HTML rendering, `helmet` headers.
 - Input: every body is a class-validator DTO with unknown fields rejected; list filters/sorts are whitelisted per resource; the AI question is length-capped and the model has no tools or data access.
 - Uploads: extension + MIME + magic-byte check, 5 MB cap enforced before buffering, private bucket, presigned 5-minute download URLs, keys are server-generated UUIDs.
