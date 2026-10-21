@@ -1,4 +1,4 @@
-# Local development only. Production uses Neon (Postgres) and Cloudflare R2 (S3).
+# Local development only. Production uses Neon (Postgres) and Backblaze B2 (S3-compatible).
 # Both services here speak the same protocols, so the app code is identical.
 # S3Mock instead of MinIO: MinIO pulled its public Docker images in 2026; S3Mock
 # is a small, actively published S3-compatible server that creates buckets from env.

@@ -6,7 +6,7 @@ A small support-ticket tracker with a role-aware admin UI.
 - **Demo logins:** `admin@triage.dev` (Admin) · `agent@triage.dev` (Agent) · password `Password123!`
 
 ```
-backend/    NestJS 12 API · Prisma 7 + PostgreSQL (Neon) · Casbin RBAC · S3 storage (Cloudflare R2) · AI field helper
+backend/    NestJS 12 API · Prisma 7 + PostgreSQL (Neon) · Casbin RBAC · S3-compatible storage (Backblaze B2) · AI field helper
 frontend/   Refine 5 admin (Ant Design) · Vite · stock simple-rest data provider
 docker-compose.yml   local Postgres + S3Mock for development only
 ```
@@ -43,7 +43,7 @@ The brief leaves the stack open and grades the reasoning. I picked what I can bu
 | **Casbin** (policy as code) | Two static roles → the policy is a 20-line TypeScript constant loaded with a string adapter. Reviewed in git, no policy table, no sync. | A DB-backed policy adapter would allow runtime editing nobody asked for. |
 | **Refine 5 + Ant Design** | A real admin framework: generated resources, inferencer-scaffolded pages, built-in list/filter/sort/pagination, forms, auth and access-control providers. The task explicitly wants generated admin tooling that is then customised, not a bespoke UI. | A hand-rolled React admin — exactly what the brief warns against. |
 | **Bearer JWT + rotating refresh tokens** | Frontend (Vercel) and API (Railway) are different origins, so cookie sessions would need `SameSite=None` plus CSRF tokens plus a proxy. Bearer tokens are never attached automatically by the browser, so there is no CSRF surface; CORS is locked to the frontend origin. | httpOnly cookies are XSS-safer for the token itself; see *Security* for the mitigations I chose instead. |
-| **Object storage via the API** (multer in memory → S3 `PutObject`) | The bucket stays private, the server validates extension + declared type + magic bytes on the real bytes, no bucket CORS to configure. Nothing ever touches local disk. Downloads are 5-minute presigned URLs. | Browser-direct presigned PUT scales better for big files; irrelevant at a 5 MB cap. |
+| **Object storage via the API** (multer in memory → S3 `PutObject`, Backblaze B2) | The bucket stays private, the server validates extension + declared type + magic bytes on the real bytes, no bucket CORS to configure. Nothing ever touches local disk. Downloads are 5-minute presigned URLs. | Browser-direct presigned PUT scales better for big files; irrelevant at a 5 MB cap. |
 | **AI helper = one `fetch`** to any OpenAI-compatible endpoint | Grounded on the ticket form's real field definitions; provider is three env vars (Groq free tier by default); no SDK; 10 s timeout; any failure is a 503 and the admin keeps working. | A vendor SDK or an agent framework — more code for a single grounded Q&A call. |
 
 ## Architecture
@@ -51,7 +51,7 @@ The brief leaves the stack open and grades the reasoning. I picked what I can bu
 ```
 Browser ── Refine admin (Vercel) ──HTTPS/JSON──▶ NestJS API (Railway) ──▶ PostgreSQL (Neon)
                                                       │
-                                                      ├──▶ S3-compatible bucket (Cloudflare R2), private
+                                                      ├──▶ S3-compatible bucket (Backblaze B2), private
                                                       └──▶ OpenAI-compatible chat endpoint (optional)
 ```
 
@@ -97,7 +97,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 
 - **API:** Railway, from `backend/Dockerfile` (multi-stage, non-root, runs `prisma migrate deploy` then `node dist/main.js`). Health check `GET /api/health`. Env vars set in the service; `CORS_ORIGIN` = the Vercel URL.
 - **DB:** Neon Postgres (`DATABASE_URL` with `sslmode=require`).
-- **Storage:** Cloudflare R2 bucket + API token (`S3_*` vars, `S3_REGION=auto`).
+- **Storage:** Backblaze B2 private bucket + application key (`S3_*` vars; any S3-compatible store works — R2/S3/MinIO need only different env values).
 - **Frontend:** Vercel, root directory `frontend`, `VITE_API_URL` pointing at the Railway URL; `vercel.json` rewrites deep links to `index.html`.
 - **AI:** any OpenAI-compatible provider; Groq free tier by default (`AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`). Unset = the helper reports itself unavailable, nothing else changes.
 

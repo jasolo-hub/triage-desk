@@ -46,8 +46,8 @@ Validated at boot (`src/config/env.validation.ts`): a missing or malformed requi
 | `JWT_ACCESS_TTL` | no (`15m`) | `15m` | Access-token lifetime |
 | `JWT_REFRESH_TTL_DAYS` | no (`7`) | `7` | Refresh-token lifetime in days |
 | `CORS_ORIGIN` | **yes** | `http://localhost:5173,https://triage.vercel.app` | Allowed frontend origins, comma-separated |
-| `S3_ENDPOINT` | **yes** | `http://localhost:9090` / `https://<account>.r2.cloudflarestorage.com` | S3 API endpoint (S3Mock / R2) |
-| `S3_REGION` | **yes** | `auto` | Region (`auto` for R2; ignored by S3Mock) |
+| `S3_ENDPOINT` | **yes** | `http://localhost:9090` / `https://s3.us-east-005.backblazeb2.com` | S3 API endpoint (S3Mock / Backblaze B2 / any S3) |
+| `S3_REGION` | **yes** | `us-east-005` | Region from the bucket endpoint (`auto` for R2; ignored by S3Mock) |
 | `S3_BUCKET` | **yes** | `triage-attachments` | Private bucket for attachments |
 | `S3_ACCESS_KEY_ID` | **yes** | `local` | Storage credentials (any value for S3Mock) |
 | `S3_SECRET_ACCESS_KEY` | **yes** | `local` | Storage credentials |
