@@ -11,6 +11,11 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    // Migrations take a session-level advisory lock, which connection poolers
+    // in transaction mode (Neon's -pooler endpoint, PgBouncer) do not support —
+    // `migrate deploy` then times out on pg_advisory_lock. So the CLI prefers a
+    // direct connection when one is configured; the app itself keeps using the
+    // pooled DATABASE_URL (see prisma.service.ts).
+    url: process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL,
   },
 });

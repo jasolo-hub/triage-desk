@@ -50,7 +50,8 @@ Validated at boot (`src/config/env.validation.ts`): a missing or malformed requi
 |---|---|---|---|
 | `NODE_ENV` | no (`development`) | `production` | Runtime mode |
 | `PORT` | no (`3000`) | `3000` | HTTP port (the hosting platform injects it) |
-| `DATABASE_URL` | **yes** | `postgresql://triage:triage@localhost:5432/triage` | Postgres connection (Neon in production, add `?sslmode=require`) |
+| `DATABASE_URL` | **yes** | `postgresql://triage:triage@localhost:5432/triage` | Postgres connection for the app (Neon **pooled** endpoint in production, `?sslmode=verify-full`) |
+| `DATABASE_URL_DIRECT` | no | Neon host without `-pooler` | Used only by the Prisma CLI (`migrate deploy` at container start, `db:seed`): migrations take a session-level advisory lock that poolers in transaction mode cannot hold. Unset → CLI uses `DATABASE_URL` (fine for local Docker). |
 | `DB_POOL_MAX` | no (`10`) | `10` | Max DB connections per API instance; instances × this must fit the database's connection limit |
 | `JWT_SECRET` | **yes**, ≥ 32 chars | output of `openssl rand -base64 48` | HS256 signing key for access tokens |
 | `JWT_ACCESS_TTL` | no (`15m`) | `15m` | Access-token lifetime |
