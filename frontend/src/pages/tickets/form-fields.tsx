@@ -36,8 +36,10 @@ export const TicketFormFields = ({ defaults }: Props) => {
   });
 
   // Each option carries its own help ("Service down … SLA 4h").
+  // In the dropdown: label + help; once chosen, only the short label (optionLabelProp).
   const priorityOptions = (field("priority")?.options ?? []).map((o) => ({
     value: o.value,
+    shortLabel: o.label,
     label: (
       <span title={o.help}>
         {o.label}{" "}
@@ -62,7 +64,7 @@ export const TicketFormFields = ({ defaults }: Props) => {
         <Input.TextArea rows={6} />
       </Form.Item>
       <Form.Item label={label("priority", "Priority")} name="priority" tooltip={help("priority")} rules={[{ required: true }]}>
-        <Select options={priorityOptions} optionLabelProp="value" />
+        <Select options={priorityOptions} optionLabelProp="shortLabel" />
       </Form.Item>
       <Form.Item
         label={label("customerId", "Customer")}

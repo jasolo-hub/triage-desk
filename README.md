@@ -106,7 +106,7 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 - **OAuth login** (bonus): would need a role-assignment story for first-time OAuth users (auto-assigning Agent is the safe default, auto-assigning Admin never is). Local auth already demonstrates hashing, rotation and revocation; OAuth adds a provider dependency without exercising new judgment.
 - **Multi-device sessions:** one refresh token per user keeps revocation a single nullable column. An admin tool rarely needs concurrent sessions.
 - **Redis / queues / GraphQL / microservices:** no concrete need at this size; every one of them is a second runtime to operate.
-- **Frontend unit/E2E tests:** tests are concentrated on the backend business rules (87 unit tests, < 1 s, no DB). The UI was verified manually in both roles.
+- **Frontend unit tests:** tests are concentrated where bugs cost trust — the backend business rules (88 unit tests, < 1 s, no DB) — plus one Playwright smoke (`frontend/e2e`) that proves the role gating end to end (agent sees a restricted admin *and* the API refuses the same actions) and walks a ticket through its whole lifecycle. Component-level UI tests would mostly re-test Refine and Ant Design.
 - **Full-text search index:** `ILIKE` on title/description is fine at 5 000 rows; a `pg_trgm` index is a one-migration change when it isn't.
 - **Orphan upload cleanup / virus scanning:** uploads not attached to a comment stay in the bucket; a scheduled sweep is the obvious next step.
 
@@ -117,4 +117,4 @@ The sidebar, Create/Edit/Delete buttons and the bulk toolbar are hidden for Agen
 3. Slimmer production image: run `prisma migrate deploy` as a Railway pre-deploy step so the Prisma CLI can leave the runtime image (~150 MB saved).
 4. Typed query DTOs for list endpoints so Swagger documents every filter.
 5. Audit trail of ticket status changes as its own table instead of inferring it from resolution comments.
-6. Playwright smoke test of the two-role flow, run in CI.
+6. Run the Playwright smoke in CI against a seeded throwaway database.
