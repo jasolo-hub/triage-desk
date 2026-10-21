@@ -22,8 +22,8 @@ export interface StoredObject {
   size: number;
 }
 
-// S3 API client for any S3-compatible store: S3Mock locally, Cloudflare R2 in
-// production (D12). Only env decides which one.
+// S3 API client: S3Mock locally, Backblaze B2 in production (any S3-compatible
+// store works, D12). Only env decides which one.
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
@@ -35,7 +35,7 @@ export class StorageService {
     this.s3 = new S3Client({
       endpoint: config.get('S3_ENDPOINT', { infer: true }),
       region: config.get('S3_REGION', { infer: true }),
-      // S3Mock needs path-style URLs (http://host/bucket/key); R2 works with both.
+      // S3Mock needs path-style URLs (http://host/bucket/key); B2 works with both.
       forcePathStyle: config.get('S3_FORCE_PATH_STYLE', { infer: true }),
       credentials: {
         accessKeyId: config.get('S3_ACCESS_KEY_ID', { infer: true }),
