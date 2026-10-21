@@ -17,3 +17,7 @@ notes/
 .vscode/
 .DS_Store
 *.log
+
+# playwright artifacts (wherever it is run from)
+test-results/
+playwright-report/
