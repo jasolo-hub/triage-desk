@@ -95,6 +95,7 @@ Seeding production is a one-off from a checkout (the seed is intentionally not i
 | Record-level rules (agent edits own or unassigned tickets, own comments) | `TicketsService.loadForChange`, `CommentsService.update` |
 | Refresh-token rotation and replay detection | `src/auth/auth.service.ts` |
 | Refine simple-rest list parsing (filters, sort, pagination) | `src/common/list-query.ts` |
+| List response shape (array body + `x-total-count`), one interceptor for all list endpoints | `src/common/list-response.interceptor.ts` (`@ListResponse()`) |
 | Upload allowlist, signature and file-name length check | `src/uploads/upload-rules.ts` |
 | AI system prompt | `src/ai/ai.prompt.ts` |
 | Prisma error → HTTP mapping (400/409/404) | `src/common/prisma-exception.filter.ts` |
@@ -112,4 +113,4 @@ There is one session per user. Each refresh rotates the refresh token. Presentin
 
 ## Tests
 
-`npm test` runs 99 Vitest tests in under a second, no database needed. They cover the full transition matrix, the reopen-window boundary and SLA/overdue per priority. `TicketsService` rules run against an in-memory Prisma fake: ownership 403, claim race 409, start-work ownership, resolution comment and bulk partial failure. `AuthService.refresh` covers rotation, replay versus garbage tokens, concurrent refresh and expiry. Also tested: the list-query parser, the upload allowlist and the AI prompt content.
+`npm test` runs 100 Vitest tests in under a second, no database needed. They cover the full transition matrix, the reopen-window boundary and SLA/overdue per priority. `TicketsService` rules run against an in-memory Prisma fake: ownership 403, claim race 409, start-work ownership, resolution comment and bulk partial failure. `AuthService.refresh` covers rotation, replay versus garbage tokens, concurrent refresh and expiry. Also tested: the list-query parser, the upload allowlist and the AI prompt content.

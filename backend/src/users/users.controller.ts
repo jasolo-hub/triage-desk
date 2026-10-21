@@ -8,15 +8,14 @@ import {
   Patch,
   Post,
   Query,
-  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import type { AuthUser } from '../auth/auth-user.js';
 import { Access, CurrentUser } from '../auth/decorators.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UsersService } from './users.service.js';
+import { ListResponse } from '../common/list-response.interceptor.js';
 
 // User management: the policy grants "users" to ADMIN only.
 @ApiTags('users')
@@ -26,14 +25,10 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Access('users', 'list')
+  @ListResponse()
   @Get()
-  async list(
-    @Query() query: Record<string, unknown>,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { items, total } = await this.users.list(query);
-    res.setHeader('x-total-count', total);
-    return items;
+  async list(@Query() query: Record<string, unknown>) {
+    return this.users.list(query);
   }
 
   @Access('users', 'show')

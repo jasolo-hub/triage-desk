@@ -8,15 +8,14 @@ import {
   Patch,
   Post,
   Query,
-  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import type { AuthUser } from '../auth/auth-user.js';
 import { Access, CurrentUser } from '../auth/decorators.js';
 import { CommentsService } from './comments.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
+import { ListResponse } from '../common/list-response.interceptor.js';
 
 @ApiTags('comments')
 @ApiBearerAuth()
@@ -25,14 +24,10 @@ export class CommentsController {
   constructor(private readonly comments: CommentsService) {}
 
   @Access('comments', 'list')
+  @ListResponse()
   @Get()
-  async list(
-    @Query() query: Record<string, unknown>,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { items, total } = await this.comments.list(query);
-    res.setHeader('x-total-count', total);
-    return items;
+  async list(@Query() query: Record<string, unknown>) {
+    return this.comments.list(query);
   }
 
   // Reading one comment is covered by the "list" permission (the policy has no

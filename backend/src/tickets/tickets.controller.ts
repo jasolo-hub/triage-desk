@@ -9,10 +9,8 @@ import {
   Patch,
   Post,
   Query,
-  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import type { AuthUser } from '../auth/auth-user.js';
 import { Access, AuthenticatedOnly, CurrentUser } from '../auth/decorators.js';
 import { BulkAssignDto, BulkTransitionDto } from './dto/bulk.dto.js';
@@ -20,6 +18,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { TransitionTicketDto } from './dto/transition-ticket.dto.js';
 import { UpdateTicketDto } from './dto/update-ticket.dto.js';
 import { TicketsService } from './tickets.service.js';
+import { ListResponse } from '../common/list-response.interceptor.js';
 
 @ApiTags('tickets')
 @ApiBearerAuth()
@@ -28,14 +27,10 @@ export class TicketsController {
   constructor(private readonly tickets: TicketsService) {}
 
   @Access('tickets', 'list')
+  @ListResponse()
   @Get()
-  async list(
-    @Query() query: Record<string, unknown>,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { items, total } = await this.tickets.list(query);
-    res.setHeader('x-total-count', total);
-    return items;
+  async list(@Query() query: Record<string, unknown>) {
+    return this.tickets.list(query);
   }
 
   // Declared before ':id' so "fields" is not parsed as an id. Static form

@@ -207,7 +207,7 @@ function toStrings(key: string, raw: unknown): string[] {
   return values as string[];
 }
 
-/** What list services return; controllers put `total` in the x-total-count header. */
+/** What list services return; ListResponseInterceptor turns it into array body + x-total-count header. */
 export interface ListResult<T> {
   items: T[];
   total: number;

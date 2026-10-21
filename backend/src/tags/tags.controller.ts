@@ -8,14 +8,13 @@ import {
   Patch,
   Post,
   Query,
-  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import { Access } from '../auth/decorators.js';
 import { CreateTagDto } from './dto/create-tag.dto.js';
 import { UpdateTagDto } from './dto/update-tag.dto.js';
 import { TagsService } from './tags.service.js';
+import { ListResponse } from '../common/list-response.interceptor.js';
 
 @ApiTags('tags')
 @ApiBearerAuth()
@@ -24,14 +23,10 @@ export class TagsController {
   constructor(private readonly tags: TagsService) {}
 
   @Access('tags', 'list')
+  @ListResponse()
   @Get()
-  async list(
-    @Query() query: Record<string, unknown>,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { items, total } = await this.tags.list(query);
-    res.setHeader('x-total-count', total);
-    return items;
+  async list(@Query() query: Record<string, unknown>) {
+    return this.tags.list(query);
   }
 
   @Access('tags', 'show')

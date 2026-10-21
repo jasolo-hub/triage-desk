@@ -8,14 +8,13 @@ import {
   Patch,
   Post,
   Query,
-  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import { Access } from '../auth/decorators.js';
 import { CustomersService } from './customers.service.js';
 import { CreateCustomerDto } from './dto/create-customer.dto.js';
 import { UpdateCustomerDto } from './dto/update-customer.dto.js';
+import { ListResponse } from '../common/list-response.interceptor.js';
 
 @ApiTags('customers')
 @ApiBearerAuth()
@@ -24,14 +23,10 @@ export class CustomersController {
   constructor(private readonly customers: CustomersService) {}
 
   @Access('customers', 'list')
+  @ListResponse()
   @Get()
-  async list(
-    @Query() query: Record<string, unknown>,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { items, total } = await this.customers.list(query);
-    res.setHeader('x-total-count', total);
-    return items;
+  async list(@Query() query: Record<string, unknown>) {
+    return this.customers.list(query);
   }
 
   @Access('customers', 'show')
