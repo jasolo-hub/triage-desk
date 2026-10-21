@@ -1,5 +1,6 @@
 import {
   ArgumentsHost,
+  BadRequestException,
   Catch,
   ConflictException,
   HttpException,
@@ -22,6 +23,8 @@ export function toHttpException(
   error: Prisma.PrismaClientKnownRequestError,
 ): HttpException | null {
   switch (error.code) {
+    case 'P2000': // value longer than its VARCHAR column (limits mirror the DTOs, D29)
+      return new BadRequestException('A value is too long for its field');
     case 'P2002': // unique constraint violation
       return new ConflictException(
         `${uniqueFields(error) ?? 'Value'} already exists`,

@@ -35,6 +35,16 @@ describe('validateUpload', () => {
     },
   );
 
+  it('rejects a file name longer than the attachmentName column', () => {
+    const name = `${'a'.repeat(252)}.png`; // 256 characters
+    expect(() => validateUpload(file(name, 'image/png', PNG))).toThrow(
+      'File name is longer than 255 characters',
+    );
+    expect(validateUpload(file(name.slice(1), 'image/png', PNG)).ext).toBe(
+      'png',
+    );
+  });
+
   it('rejects a declared type that does not match the extension', () => {
     expect(() =>
       validateUpload(file('shot.png', 'application/pdf', PNG)),

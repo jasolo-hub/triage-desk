@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+// Common filesystem limit, and the size of Comment.attachmentName in the DB:
+// checking here gives a clear 400 at upload instead of a failing comment later.
+export const MAX_FILE_NAME_LENGTH = 255;
 
 /** Allowed extension → the one content type it must be declared with. */
 export const ALLOWED_TYPES: Record<string, string> = {
@@ -38,6 +41,11 @@ export function validateUpload(file: {
   mimetype: string;
   buffer: Buffer;
 }): ValidatedUpload {
+  if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
+    throw new BadRequestException(
+      `File name is longer than ${MAX_FILE_NAME_LENGTH} characters`,
+    );
+  }
   const ext = file.originalname.includes('.')
     ? file.originalname.split('.').pop()!.toLowerCase()
     : '';

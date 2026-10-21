@@ -32,17 +32,25 @@ enum TicketPriority {
   URGENT
 }
 
+// Length limits (@db.VarChar) repeat the DTO limits so the database enforces
+// them for every writer (seed, scripts, psql), not only the API (D29). Long free
+// text (ticket description, comment body) stays TEXT: its cap is a product rule
+// that lives in the DTO.
 model User {
-  id                    Int       @id @default(autoincrement())
-  email                 String    @unique
-  name                  String
-  role                  Role      @default(AGENT)
-  passwordHash          String
+  id                       Int       @id @default(autoincrement())
+  email                    String    @unique @db.VarChar(320) // 64 local part + "@" + 255 domain
+  name                     String    @db.VarChar(200)
+  role                     Role      @default(AGENT)
+  passwordHash             String
   // One active session per user (D3): SHA-256 of the current refresh token.
-  refreshTokenHash      String?
-  refreshTokenExpiresAt DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  refreshTokenHash         String?
+  refreshTokenExpiresAt    DateTime?
+  // Hash of the token that was rotated away last. Only presenting exactly this
+  // one counts as replay and revokes the session; any other mismatch is just an
+  // invalid token, so garbage cannot log a user out (D27).
+  previousRefreshTokenHash String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   assignedTickets Ticket[]
   comments        Comment[]
@@ -50,9 +58,9 @@ model User {
 
 model Customer {
   id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  company   String?
+  name      String   @db.VarChar(200)
+  email     String   @unique @db.VarChar(320)
+  company   String?  @db.VarChar(200)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -61,7 +69,7 @@ model Customer {
 
 model Ticket {
   id          Int            @id @default(autoincrement())
-  title       String
+  title       String         @db.VarChar(200)
   description String
   status      TicketStatus   @default(OPEN)
   priority    TicketPriority @default(NORMAL)
@@ -97,8 +105,9 @@ model Comment {
   isResolution          Boolean  @default(false)
   // Optional attachment (object storage). Unique key = one object per comment.
   attachmentKey         String?  @unique
-  attachmentName        String?
-  attachmentContentType String?
+  // Name capped at upload (upload-rules.ts); content type comes from the allowlist.
+  attachmentName        String?  @db.VarChar(255)
+  attachmentContentType String?  @db.VarChar(100)
   attachmentSize        Int?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -109,8 +118,8 @@ model Comment {
 
 model Tag {
   id    Int    @id @default(autoincrement())
-  name  String @unique
-  color String
+  name  String @unique @db.VarChar(50)
+  color String @db.VarChar(7) // "#rrggbb"
 
   // Implicit many-to-many: Prisma manages the join table (_TagToTicket).
   tickets Ticket[]
